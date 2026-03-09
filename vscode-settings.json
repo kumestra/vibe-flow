@@ -1,0 +1,6 @@
+{
+    "files.autoSave": "onFocusChange",
+    "workbench.colorTheme": "Solarized Dark",
+    "editor.lineHeight": 1.5,
+    "workbench.iconTheme": "material-icon-theme"
+}
