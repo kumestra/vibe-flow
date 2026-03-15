@@ -2,8 +2,3 @@
 name = "vibe-flow"
 version = "0.1.0"
 edition = "2024"
-
-[dependencies]
-axum = "0.8.8"
-reqwest = { version = "0.13.2", features = ["json"] }
-tokio = { version = "1.50.0", features = ["full"] }
