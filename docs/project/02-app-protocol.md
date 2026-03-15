@@ -94,6 +94,59 @@ Network protocols (TCP/IP, HTTP, SOCKS5) universally use **big-endian**, also ca
 
 ---
 
+## Graceful Close
+
+When one side wants to stop communicating, it sends a **zero-length message** — a LENGTH of `00 00 00 00` with no payload:
+
+```
+00 00 00 00
+└─────────┘
+  length=0  ← signals "I am done, close the connection"
+```
+
+The receiver sees length = 0, knows it is an intentional close signal, does its own cleanup, and closes the connection.
+
+This is better than just closing the TCP socket abruptly because:
+- The other side knows the close was **intentional**, not a crash
+- Both sides get a chance to clean up before closing
+
+**Flow:**
+```
+client → server: 00 00 00 00     (I'm done)
+server sees length=0, closes connection
+```
+
+---
+
+## Unexpected Disconnect
+
+If the connection drops mid-communication (network failure, crash, power loss), no close signal is sent. The other side detects this through:
+
+**`read()` returning 0 bytes** — TCP sends a `FIN` when the OS closes the socket (e.g. process crash). The receiver's next `read()` returns 0, signaling the connection is gone.
+
+**`read()` or `write()` returning an error** — if the network drops entirely, eventually the OS returns an I/O error on the socket.
+
+**Timeout** — if neither happens quickly (network silently drops packets), the receiver may block on `read()` forever. The solution is a **timeout** — if no data arrives within N seconds, assume the connection is dead and close it.
+
+**Heartbeat (ping/pong)** — for long-lived connections, periodically send a small message to confirm the other side is still alive. If no reply within a timeout, disconnect. This project does not implement heartbeat for simplicity.
+
+**How we handle it in this project:**
+- Treat `read()` returning 0 as disconnection → close and exit
+- Treat `read()`/`write()` errors as disconnection → close and exit
+- No timeout or heartbeat for now — this is a local test tool
+
+---
+
+## Summary of Connection States
+
+```
+Normal message:    LENGTH (4 bytes, > 0) + PAYLOAD (N bytes)
+Graceful close:    LENGTH (4 bytes, = 0) — no payload follows
+Unexpected drop:   read() returns 0 or error
+```
+
+---
+
 ## Usage in This Project
 
 This protocol is used by:
