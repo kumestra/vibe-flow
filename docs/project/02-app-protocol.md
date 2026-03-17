@@ -2,25 +2,11 @@
 
 ## Overview
 
-This is a simple custom protocol designed for this project to test the SOCKS5 proxy without the complexity of HTTP. It runs over TCP.
-
-The goal is to be as simple as possible while solving the core TCP problem: **knowing where one message ends and the next begins**.
+A simple custom protocol designed for this project to test the SOCKS5 proxy. It runs over TCP.
 
 ---
 
-## The Problem with Raw TCP
-
-TCP is a byte stream — it has no concept of message boundaries. If a client sends "hello" and "world" as two separate messages, the server might receive:
-
-- `"hello"` and `"world"` separately — ideal but not guaranteed
-- `"helloworld"` merged — one read, two messages
-- `"hel"` then `"loworld"` — split mid-message
-
-The protocol must define how to detect message boundaries.
-
----
-
-## Protocol Design
+## Message Format
 
 Every message has three fields: **TYPE + LENGTH + PAYLOAD**
 
@@ -35,6 +21,7 @@ Every message has three fields: **TYPE + LENGTH + PAYLOAD**
 - `TYPE` — 1 byte, identifies the message type
 - `LENGTH` — 4 bytes, unsigned 32-bit integer, big-endian, number of payload bytes
 - `PAYLOAD` — N bytes of UTF-8 encoded text (N = LENGTH, can be 0)
+- Maximum payload size: 2^32 - 1 bytes (~4 GB)
 
 ---
 
@@ -49,29 +36,25 @@ Every message has three fields: **TYPE + LENGTH + PAYLOAD**
 
 ---
 
-## How to Read a Message
+## How to Read
 
-1. Read exactly **1 byte** → parse as TYPE
-2. Read exactly **4 bytes** → parse as u32 big-endian → this is LENGTH `N`
-3. Read exactly **N bytes** → decode as UTF-8 → this is PAYLOAD (skip if N = 0)
-
-One consistent parsing logic handles all message types.
+1. Read exactly **1 byte** → TYPE
+2. Read exactly **4 bytes** → u32 big-endian → LENGTH `N`
+3. If N > 0, read exactly **N bytes** → PAYLOAD
 
 ---
 
-## How to Write a Message
+## How to Write
 
 1. Write TYPE (1 byte)
-2. Encode payload as UTF-8 bytes → get length `N`
-3. Write `N` as 4 bytes big-endian
-4. Write the payload bytes (skip if N = 0)
+2. Write payload length as 4 bytes big-endian
+3. If payload exists, write payload bytes
 
 ---
 
-## Example — Normal Message
+## Byte Examples
 
-Sending `"hello"` (5 bytes):
-
+**Normal message** — sending `"hello"` (5 bytes):
 ```
 00 00 00 00 05 68 65 6c 6c 6f
 │  └─────────┘ └─────────────┘
@@ -79,85 +62,42 @@ Sending `"hello"` (5 bytes):
 └── TYPE=0x00 (normal message)
 ```
 
----
-
-## Example — Ping
-
+**Ping:**
 ```
 01 00 00 00 00
 │  └─────────┘
-│   length=0 (no payload)
+│   length=0
 └── TYPE=0x01 (ping)
 ```
 
----
+**Pong:**
+```
+02 00 00 00 00
+│  └─────────┘
+│   length=0
+└── TYPE=0x02 (pong)
+```
 
-## Example — Graceful Close
-
+**Graceful close:**
 ```
 FF 00 00 00 00
 │  └─────────┘
-│   length=0 (no payload)
-└── TYPE=0xFF (graceful close)
+│   length=0
+└── TYPE=0xFF (close)
 ```
 
 ---
 
-## Why Big-Endian?
+## Heartbeat
 
-Multi-byte numbers can be stored in two ways:
+Client sends **ping** every N seconds. Server replies **pong** immediately.
 
-- **Big-endian** — most significant byte first: `00 00 00 05`
-- **Little-endian** — least significant byte first: `05 00 00 00`
-
-Network protocols (TCP/IP, HTTP, SOCKS5) universally use **big-endian**, also called **network byte order**. We follow the same convention.
+- Client receives no pong within timeout → server is dead → close
+- Server receives no ping within timeout → client is dead → close
 
 ---
 
-## Limits
-
-- Maximum message size: 2^32 - 1 bytes (~4 GB) — more than enough for testing
-- Payload must be valid UTF-8 text
-
----
-
-## Graceful Close
-
-When one side wants to stop, it sends a TYPE `0xFF` message with LENGTH = 0:
-
-```
-FF 00 00 00 00   ← graceful close signal
-```
-
-The receiver sees TYPE = `0xFF`, does its own cleanup, and closes the connection.
-
----
-
-## Heartbeat (Ping / Pong)
-
-For long-lived connections, one side periodically sends a **ping** to confirm the other side is still alive:
-
-```
-client → server: 01 00 00 00 00   (ping)
-server → client: 02 00 00 00 00   (pong)
-```
-
-If no pong is received within a timeout → assume connection dead → close.
-If no ping received within a timeout → assume client dead → close.
-
----
-
-## Unexpected Disconnect
-
-If the connection drops (network failure, crash), no close signal is sent. Detection:
-
-- `read()` returns 0 → TCP `FIN` received → connection closed
-- `read()` / `write()` returns error → connection dropped
-- No ping received within timeout → connection dead
-
----
-
-## Summary of Connection States
+## Connection Lifecycle
 
 ```
 Normal message:    TYPE=0x00 + LENGTH (> 0) + PAYLOAD
@@ -169,42 +109,21 @@ Unexpected drop:   read() returns 0 or error
 
 ---
 
-## Usage in This Project
-
-This protocol is used by:
-- `tcp_server` — listens, receives messages, replies, responds to ping with pong
-- `tcp_client` — connects through the SOCKS5 proxy, sends messages, sends ping periodically
-
-The SOCKS5 proxy sits in between and forwards the raw bytes without knowing or caring about this protocol.
-
-```
-tcp_client ──[this protocol]──→ socks5_proxy ──[this protocol]──→ tcp_server
-```
-
----
-
 ## Communication Flow
 
 ```mermaid
 sequenceDiagram
     participant C as tcp_client
-    participant P as socks5_proxy
     participant S as tcp_server
 
-    C->>P: connect (TCP)
-    P->>S: connect (TCP)
+    C->>S: connect (TCP)
 
-    C->>P: TYPE=0x00 + LENGTH + PAYLOAD
-    P->>S: TYPE=0x00 + LENGTH + PAYLOAD
+    C->>S: TYPE=0x00 + LENGTH + PAYLOAD
+    S->>C: TYPE=0x00 + LENGTH + REPLY
 
-    S->>P: TYPE=0x00 + LENGTH + REPLY
-    P->>C: TYPE=0x00 + LENGTH + REPLY
+    C->>S: TYPE=0x01 (ping)
+    S->>C: TYPE=0x02 (pong)
 
-    C->>P: TYPE=0x01 (ping)
-    P->>C: TYPE=0x02 (pong)
-
-    C->>P: TYPE=0xFF (graceful close)
-    P->>S: TYPE=0xFF (graceful close)
-    S-->>P: connection closed
-    P-->>C: connection closed
+    C->>S: TYPE=0xFF (graceful close)
+    S-->>C: connection closed
 ```
