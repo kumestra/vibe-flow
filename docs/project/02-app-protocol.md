@@ -158,3 +158,28 @@ The SOCKS5 proxy sits in between and forwards the raw bytes without knowing or c
 ```
 tcp_client ──[this protocol]──→ socks5_proxy ──[this protocol]──→ tcp_server
 ```
+
+---
+
+## Communication Flow
+
+```mermaid
+sequenceDiagram
+    participant C as tcp_client
+    participant P as socks5_proxy
+    participant S as tcp_server
+
+    C->>P: connect (TCP)
+    P->>S: connect (TCP)
+
+    C->>P: LENGTH (4 bytes) + PAYLOAD
+    P->>S: LENGTH (4 bytes) + PAYLOAD
+
+    S->>P: LENGTH (4 bytes) + REPLY
+    P->>C: LENGTH (4 bytes) + REPLY
+
+    C->>P: LENGTH = 0 (graceful close)
+    P->>S: LENGTH = 0 (graceful close)
+    S-->>P: connection closed
+    P-->>C: connection closed
+```
