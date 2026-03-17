@@ -36,7 +36,10 @@ vibe-flow is a **vibe coding playground** — not a serious product, not a busin
 - Use `.gitkeep` files to track empty folders
 - Clean ignored files (`git clean -Xfd`) before switching branches when needed
 - Commit frequently with descriptive messages
-- Push to GitHub after each commit
+- Push to GitHub after each commit — always push immediately after every commit
+- Do NOT use `git add -A` or `git add .` — always add files explicitly one by one with `git add <file>`
+- Before every `git commit`, review all staged contents with `git diff --cached` and show it to the user
+- If any binary file is found in the repo that is not gitignored, warn the user immediately before proceeding
 
 ---
 
