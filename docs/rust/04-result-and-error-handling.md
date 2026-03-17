@@ -77,11 +77,34 @@ match TcpListener::bind("0.0.0.0:8080") {
 
 ### 2. .unwrap() — panic on error
 
-Extracts the `Ok` value. If `Err`, panics immediately.
+`unwrap()` is a method defined on the `Result` enum. Internally it is just a `match`:
 
 ```rust
-let listener = TcpListener::bind("0.0.0.0:8080").unwrap();
+impl<T, E> Result<T, E> {
+    pub fn unwrap(self) -> T {
+        match self {
+            Ok(value) => value,          // return the value
+            Err(e)    => panic!("{}", e), // crash the program
+        }
+    }
+}
 ```
+
+- If `Ok` → returns the value inside, program continues
+- If `Err` → **panics** and crashes the program
+
+```rust
+Ok(42).unwrap()          // returns 42
+Err("oops").unwrap()     // panics: 'called `Result::unwrap()` on an `Err` value: "oops"'
+```
+
+**Panic** is not a normal exit — it prints an error message with file and line number, then terminates with a non-zero exit code:
+
+| | Normal exit | Panic |
+|---|---|---|
+| Exit code | 0 (success) | non-zero (failure) |
+| Message | nothing | error message + location |
+| Cause | program finished normally | unexpected error |
 
 Use only during development and testing. Not for production code.
 
