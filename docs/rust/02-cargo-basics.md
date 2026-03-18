@@ -149,6 +149,42 @@ Build output folder — can be very large (GBs for big projects). Always gitigno
 
 ---
 
+## Two Types of Crates
+
+There are two types of crates in the Rust ecosystem:
+
+```
+lib crate    → code library, cannot run alone, used by your code
+binary crate → executable tool, can run directly
+```
+
+**Two ways to install:**
+
+```bash
+cargo install ripgrep    # installs binary tool globally to ~/.cargo/bin/
+cargo add serde          # adds lib crate as dependency to current project
+```
+
+- `cargo install` — for tools you want to run (circom, ripgrep, cargo-watch)
+- `cargo add` — for libraries your code uses (serde, tokio, axum)
+
+In both cases, cargo always fetches **source code** and compiles it locally. This is different from most package managers:
+
+| Package Manager | What it fetches |
+|---|---|
+| **cargo** (Rust) | Source code → compiles locally |
+| **npm** (JavaScript) | Pre-built JavaScript files |
+| **pip** (Python) | Pre-built wheels (or source) |
+| **apt** (Ubuntu) | Pre-built binaries |
+
+**Why Rust always compiles locally:**
+
+- Rust does heavy compile-time optimizations that require knowing your specific target architecture
+- Generic types in libraries must be compiled for your specific types — this can't be done ahead of time
+- The compiler needs to see all source code to guarantee memory safety
+
+---
+
 ## cargo init vs uv init (Python comparison)
 
 | | Rust (Cargo) | Python (uv) |
