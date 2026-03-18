@@ -114,11 +114,11 @@ Famous ceremonies:
 
 **Types of trusted setup:**
 
-| Type | Setup Required | Example |
-|---|---|---|
-| **Circuit-specific** | New ceremony per circuit | Groth16 |
-| **Universal** | One ceremony for all circuits | PLONK, Halo2 |
-| **None** | No ceremony needed | STARKs |
+| Type | Setup Required | Proof Size | Example |
+|---|---|---|---|
+| **Circuit-specific** | New ceremony per circuit | ~200 bytes | Groth16 |
+| **Universal** | One ceremony for all circuits | Small | PLONK, Halo2 |
+| **None** | No ceremony needed | ~100 KB | STARKs |
 
 STARKs use only hash functions (no elliptic curves), so no secret randomness is needed. Trade-off: proof size is much larger (~100 KB vs ~200 bytes for Groth16).
 
@@ -209,35 +209,41 @@ proof        = the sealed envelope — verifier knows something valid
 
 **Step 5 — Verify**
 
-The prover sends three things to the verifier:
+The prover sends two things to the verifier:
 
 ```
-proof            → "I computed the circuit correctly"
-public inputs    → hash = a1b2c3...  (the prover states this openly)
-verification key → from trusted setup (public, shared by everyone)
+proof         → "I computed the circuit correctly"
+public inputs → hash = a1b2c3...  (the specific claim being made)
 ```
 
-The public inputs are provided by the prover — they define the specific claim being made: "I know `x` such that `SHA256(x) = a1b2c3...`". The proof cryptographically backs it up.
+The verification key is already public — both prover and verifier have it from the trusted setup. The prover doesn't need to send it.
 
-The verifier checks and outputs **true** or **false** in milliseconds — without ever seeing the witness.
+The verifier uses the verification key to check the proof against the public inputs, and outputs **true** or **false** in milliseconds — without ever seeing the witness.
 
 | | Prover | Verifier |
 |---|---|---|
+| Has proving key? | Yes | No |
+| Has verification key? | Yes | Yes (public) |
 | Knows `x`? | Yes | No |
 | Has witness? | Yes | No |
 | Time | Slow (seconds) | Fast (milliseconds) |
-| Output | Proof | true / false |
+| Output | Proof + public inputs | true / false |
 
 **Full Flow:**
 
 ```
-[trusted setup] → proving key + verification key
-                       │                  │
-circuit + x → [witness] → [prover] ─────────────→ proof
-                                                      │
-                              public inputs + proof + verification key
-                                                      │
-                                                 [verifier] → true ✓
+                    [trusted setup]
+                     │           │
+                proving key   verification key (public)
+                     │           │
+                     ↓           ↓
+circuit + x → [witness] → [prover] → proof
+                                        │
+                                        ↓
+                            proof + public inputs
+                                        │
+                                        ↓
+                           [verifier] + verification key → true ✓
 ```
 
 ---
@@ -280,17 +286,6 @@ Writing a ZKP system from scratch requires deep math (abstract algebra, number t
 | **Arkworks** | Rust | Research projects |
 | **gnark** | Go | Linea, ConsenSys |
 | **Cairo** | Custom lang | StarkNet |
-
----
-
-## Proof Systems
-
-| System | Trusted Setup | Proof Size | Verify Speed | Notes |
-|---|---|---|---|---|
-| **Groth16** | Circuit-specific | ~200 bytes | Very fast | Most widely deployed |
-| **PLONK** | Universal | Small | Fast | One ceremony for all circuits |
-| **STARKs** | None | ~100 KB | Fast | No trust assumptions |
-| **Halo2** | None | Small | Fast | Used by Zcash |
 
 ---
 
