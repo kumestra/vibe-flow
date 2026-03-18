@@ -6,33 +6,6 @@ You can **prove you know something** without **revealing what you know**.
 
 ---
 
-## The Core Model
-
-ZKP proves a relationship `f(x) = y` where:
-
-```
-f(x) = y
-
-f → public  (everyone knows the function)
-x → private (only you know the input)
-y → public  (everyone can see the output)
-
-ZKP proves: "I know an x such that f(x) = y"
-```
-
-The function `f` can be anything — hashing, comparison, arithmetic — as long as it can be expressed as a circuit.
-
-| Function | Private input | Public output | Proves |
-|---|---|---|---|
-| `SHA256(x) = y` | `x` (password) | `y` (hash) | I know the password |
-| `age(birthdate) >= 18` | birthdate | true | I'm an adult |
-| `balance - amount >= 0` | balance | true | I have enough money |
-| `vote ∈ {A, B, C}` | vote | true | My vote is valid |
-
-**ZKP separates what you prove from what you reveal.** You prove `f(x) = y` holds, but only reveal `f` and `y`, never `x`.
-
----
-
 ## The Cave Analogy
 
 Imagine a ring-shaped cave with a locked door in the middle. Two paths (A and B) lead to the door.
@@ -69,65 +42,30 @@ I'm now convinced you know the password — but I never learned the password its
 
 ---
 
-## Example — Hash Preimage
+## The Core Model
 
-**Setup:**
-- You know a secret string: `x = "my_secret"`
-- Its hash is public: `SHA256("my_secret") = a1b2c3...`
-- **Goal:** Prove you know `x` without revealing it.
-
-**Step 1 — Define a Circuit**
-
-A ZKP circuit describes **what** you want to prove, expressed as math constraints.
+ZKP proves a relationship `f(x) = y` where:
 
 ```
-circuit HashPreimage:
-    private input: x          ← only you know this
-    public input:  hash       ← everyone can see this
+f(x) = y
 
-    constraint: SHA256(x) == hash
+f → public  (everyone knows the function)
+x → private (only you know the input)
+y → public  (everyone can see the output)
+
+ZKP proves: "I know an x such that f(x) = y"
 ```
 
-The circuit is public. Your private input `x` stays with you.
+The function `f` can be anything — hashing, comparison, arithmetic — as long as it can be expressed as a circuit.
 
-**Step 2 — Circuit Becomes Math**
+| Function | Private input `x` | Public output `y` | Proves |
+|---|---|---|---|
+| `SHA256(x) = y` | password | hash | I know the password |
+| `age(birthdate) >= 18` | birthdate | true | I'm an adult |
+| `balance - amount >= 0` | balance | true | I have enough money |
+| `vote ∈ {A, B, C}` | vote | true | My vote is valid |
 
-The framework converts the circuit into thousands of simple equations:
-
-```
-a + b = c
-a * b = d
-...
-(tens of thousands of these for SHA256)
-```
-
-SHA256 produces ~30,000 constraints. Hash functions designed for ZKP (like Poseidon) produce only ~300.
-
-**Step 3 — Generate the Proof**
-
-The prover algorithm takes the circuit (public), your secret `x` (private), and the hash (public). It produces a **proof** — a small piece of data (~200 bytes) that encodes "all equations are satisfied" without revealing the values.
-
-**Step 4 — Anyone Can Verify**
-
-The verifier takes the circuit (public), the hash (public), and your proof. Runs a fast check → outputs **true** or **false**.
-
-| | Prover | Verifier |
-|---|---|---|
-| Knows `x`? | Yes | No |
-| Time | Slow (seconds) | Fast (milliseconds) |
-| Output | Proof | true / false |
-
-**Full Flow:**
-
-```
-You:       x = "my_secret"
-              │
-         SHA256(x) = a1b2c3...     ← public
-              │
-         circuit + x → [prover] → proof (200 bytes)
-              │
-Verifier: circuit + hash + proof → [verifier] → true ✓
-```
+**ZKP separates what you prove from what you reveal.** You prove `f(x) = y` holds, but only reveal `f` and `y`, never `x`.
 
 ---
 
@@ -142,22 +80,184 @@ Verifier: circuit + hash + proof → [verifier] → true ✓
 
 ---
 
+## Trusted Setup
+
+Before any proof can be generated or verified, a one-time ceremony must produce two cryptographic keys:
+
+```
+secret random numbers → CRS → proving key + verification key
+
+proving key      → used by prover    → create proof
+verification key → used by verifier  → check proof
+```
+
+If anyone keeps the secret random numbers after setup, they can generate fake proofs. So the secret must be destroyed.
+
+**The Ceremony:**
+
+To avoid trusting a single person, many people participate:
+
+```
+Person 1: generates random s1 → contributes → destroys s1
+Person 2: takes output → adds random s2 → contributes → destroys s2
+Person 3: takes output → adds random s3 → contributes → destroys s3
+...
+final output → proving key + verification key
+```
+
+As long as **at least one person** honestly destroys their secret, the system is safe.
+
+Famous ceremonies:
+- **Zcash** (2016) — 6 participants
+- **Zcash Sapling** (2018) — 90 participants worldwide
+- **Hermez** (2021) — 2000+ participants
+
+**Types of trusted setup:**
+
+| Type | Setup Required | Example |
+|---|---|---|
+| **Circuit-specific** | New ceremony per circuit | Groth16 |
+| **Universal** | One ceremony for all circuits | PLONK, Halo2 |
+| **None** | No ceremony needed | STARKs |
+
+STARKs use only hash functions (no elliptic curves), so no secret randomness is needed. Trade-off: proof size is much larger (~100 KB vs ~200 bytes for Groth16).
+
+---
+
+## Example — Hash Preimage
+
+**Setup:**
+- You know a secret string: `x = "my_secret"`
+- Its hash is public: `SHA256("my_secret") = a1b2c3...`
+- **Goal:** Prove you know `x` without revealing it.
+
+**Step 1 — Write a Circuit**
+
+A ZKP circuit describes **what** you want to prove, expressed as math constraints.
+
+```
+circuit HashPreimage:
+    private input: x          ← only you know this
+    public input:  hash       ← everyone can see this
+
+    constraint: SHA256(x) == hash
+```
+
+The circuit is public. Your private input `x` stays with you.
+
+**Step 2 — Compile to R1CS Constraints**
+
+ZKP proof systems only work with a specific math structure called **R1CS** (Rank-1 Constraint System) — a list of equations where each equation has exactly one multiplication:
+
+```
+(a * b = c)
+```
+
+The circom compiler breaks your circuit down into this format:
+
+```
+High level circuit:
+    c <== a * b + 1;
+
+Compiled to R1CS constraints:
+    tmp = a * b        → (a * b - tmp = 0)
+    c   = tmp + 1      → (tmp + 1 - c = 0)
+```
+
+Even `a * b + 1` needs two constraints because R1CS allows only one multiplication per equation. The output is a `.r1cs` file — a list of constraints with no actual values, just rules.
+
+SHA256 produces ~30,000 constraints because its bit operations (XOR, AND, shifts) all need to be decomposed into multiplications and additions. Hash functions designed for ZKP (like Poseidon) produce only ~300.
+
+**Step 3 — Compute the Witness**
+
+The witness is all the values that satisfy every constraint — computed by the prover privately.
+
+```
+witness = {
+    private input:  x = "my_secret"       ← only you know
+    public input:   hash = a1b2c3...       ← everyone knows
+    intermediate:   all values computed    ← internal wire values
+                    along the way
+}
+```
+
+The `.r1cs` contains only rules (no values). The witness fills them in:
+
+```
+.r1cs   =  "__ * __ = __"        ← the rule
+witness =  " 3 * 11 = 33"        ← the rule filled with actual values
+```
+
+The witness is computed locally and never shared.
+
+**Step 4 — Generate the Proof**
+
+The prover combines the witness with the proving key to produce a proof:
+
+```
+witness + proving key → proof (~200 bytes)
+```
+
+The proving key provides elliptic curve parameters to "commit" to the witness values without revealing them. Think of it like a sealed envelope:
+
+```
+witness      = the secret message inside
+proving key  = special ink that makes the envelope tamper-proof
+proof        = the sealed envelope — verifier knows something valid
+               is inside, but can never open it
+```
+
+**Step 5 — Verify**
+
+The prover sends three things to the verifier:
+
+```
+proof            → "I computed the circuit correctly"
+public inputs    → hash = a1b2c3...  (the prover states this openly)
+verification key → from trusted setup (public, shared by everyone)
+```
+
+The public inputs are provided by the prover — they define the specific claim being made: "I know `x` such that `SHA256(x) = a1b2c3...`". The proof cryptographically backs it up.
+
+The verifier checks and outputs **true** or **false** in milliseconds — without ever seeing the witness.
+
+| | Prover | Verifier |
+|---|---|---|
+| Knows `x`? | Yes | No |
+| Has witness? | Yes | No |
+| Time | Slow (seconds) | Fast (milliseconds) |
+| Output | Proof | true / false |
+
+**Full Flow:**
+
+```
+[trusted setup] → proving key + verification key
+                       │                  │
+circuit + x → [witness] → [prover] ─────────────→ proof
+                                                      │
+                              public inputs + proof + verification key
+                                                      │
+                                                 [verifier] → true ✓
+```
+
+---
+
 ## Using ZKP in Practice
 
-When using a ZKP library, you only write the **circuit** — the function `f` with input `x` and output `y`. The framework handles everything else.
+When using a ZKP library, you only write the **circuit**. The framework handles everything else.
 
 **You write:**
-- The circuit (the function `f`)
-- Provide the private input `x`
-- Provide the public output `y`
+- The circuit (the function `f` — what you want to prove)
 
 **The framework handles:**
-- Converting your circuit into math equations
+- Compiling the circuit to R1CS constraints
+- Running the trusted setup ceremony
+- Computing the witness from your private inputs
 - Generating the proof
 - Verifying the proof
 - All the cryptography (elliptic curves, polynomials, etc.)
 
-Example in circom:
+Example circuit in circom:
 
 ```circom
 template Multiplier() {
@@ -185,18 +285,12 @@ Writing a ZKP system from scratch requires deep math (abstract algebra, number t
 
 ## Proof Systems
 
-Different mathematical approaches to construct proofs:
-
-| System | Trusted Setup? | Proof Size | Verify Speed |
-|---|---|---|---|
-| **Groth16** | Yes | Very small (~200 bytes) | Very fast |
-| **PLONK** | Universal (one-time) | Small | Fast |
-| **STARKs** | No | Large (~100 KB) | Fast |
-| **Halo2** | No | Small | Fast |
-
-- **Trusted setup** = a one-time ceremony to generate shared parameters. If compromised, fake proofs can be created.
-- **STARKs** avoid this but produce larger proofs.
-- **Groth16** is the most widely deployed (used by Zcash).
+| System | Trusted Setup | Proof Size | Verify Speed | Notes |
+|---|---|---|---|---|
+| **Groth16** | Circuit-specific | ~200 bytes | Very fast | Most widely deployed |
+| **PLONK** | Universal | Small | Fast | One ceremony for all circuits |
+| **STARKs** | None | ~100 KB | Fast | No trust assumptions |
+| **Halo2** | None | Small | Fast | Used by Zcash |
 
 ---
 
@@ -206,9 +300,9 @@ Different mathematical approaches to construct proofs:
 ZKP = prove f(x) = y without revealing x
 
 Core model:
-├── f → public  (the function / circuit)
+├── f → public  (the circuit / function)
 ├── x → private (your secret input)
-└── y → public  (the output)
+└── y → public  (the output / public inputs)
 
 Three properties:
 ├── Completeness   → honest prover always succeeds
@@ -216,11 +310,14 @@ Three properties:
 └── Zero Knowledge → verifier learns nothing about x
 
 Workflow:
-├── Write circuit (define the relationship)
-├── Prover generates proof (slow, uses private input)
-└── Verifier checks proof (fast, no private input)
+├── Trusted setup  → proving key + verification key (one time)
+├── Write circuit  → defines what to prove
+├── Compile        → circuit becomes R1CS constraints (rules, no values)
+├── Witness        → plug in private inputs, fill in all constraint values
+├── Prove          → witness + proving key → proof (~200 bytes)
+└── Verify         → proof + public inputs + verification key → true / false
 
 Practice:
-├── Use frameworks (circom, arkworks, gnark)
+├── Use frameworks (circom + snarkjs, arkworks, gnark)
 └── Don't write crypto from scratch
 ```
