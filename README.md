@@ -17,13 +17,16 @@ vibe-flow/
 ## Running
 
 ```bash
-# Using uv
 uv run vibe-flow
+```
 
-# Or install in editable mode and run directly
+Alternative methods:
+
+```bash
+# Traditional: install in editable mode, then run
 pip install -e .
 vibe-flow
 
-# Or run as a module
+# Debug/development: run as module
 python -m vibe_flow
 ```
