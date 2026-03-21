@@ -15,3 +15,8 @@ dependencies = [
 
 [project.scripts]
 vibe-flow = "vibe_flow.cli:main"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.7",
+]
