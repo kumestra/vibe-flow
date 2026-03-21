@@ -146,6 +146,35 @@ myapp serve                        # via entry point
 python -m myapp serve              # via __main__.py
 ```
 
+### How `uv run` works under the hood
+
+When you run `uv run myapp`, uv doesn't just execute a Python file. There's a build-and-install pipeline:
+
+```
+uv run myapp
+  │
+  ├─ 1. Reads [project.scripts] → finds "myapp = myapp.cli:main"
+  │
+  ├─ 2. Detects the project needs to be installed as a package
+  │
+  ├─ 3. Reads [build-system] → finds hatchling
+  │
+  ├─ 4. Calls hatchling to build the project into a package
+  │     (collects .py files + metadata → installs into .venv/site-packages/)
+  │
+  ├─ 5. Entry point "myapp" now resolves to myapp.cli:main
+  │
+  └─ 6. Runs main()
+```
+
+This is why `[build-system]` matters even for apps you never publish. Without it, `uv run` can't install the package, and entry points won't work.
+
+uv caches the build result — you only pay the build cost the first time or when dependencies change. On subsequent runs it's near-instant.
+
+**If you skip the entry point entirely** and run `uv run python src/myapp/cli.py` directly, no build is needed — Python just executes the file. But you lose:
+- The clean CLI command (`myapp` instead of `python src/myapp/cli.py`)
+- Reliable imports (especially with `src/` layout, since `src/` isn't in `sys.path` by default)
+
 ## Package Installers
 
 ### pip
