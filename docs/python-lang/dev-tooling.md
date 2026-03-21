@@ -1,4 +1,6 @@
-# Python: Dev Tooling — Ruff & Pylance in VS Code
+# Python: Dev Tooling — Ruff, Pylance, and mypy
+
+Three complementary tools cover the full quality-assurance surface of a Python project: **Ruff** for linting and formatting, **Pylance** for IDE intelligence and basic type checking, and **mypy** for deep static type analysis.
 
 ## Ruff
 
@@ -10,7 +12,7 @@ uv run ruff check .          # lint
 uv run ruff format .         # format
 ```
 
-### Config in pyproject.toml
+### Config in `pyproject.toml`
 
 ```toml
 [tool.ruff]
@@ -46,7 +48,7 @@ Full list: https://docs.astral.sh/ruff/rules/
     - id: ruff-format
 ```
 
-## Pylance (Python extension for VS Code)
+## Pylance
 
 The VS Code Python extension bundles **Pylance** as its language server. Pylance provides:
 
@@ -56,7 +58,7 @@ The VS Code Python extension bundles **Pylance** as its language server. Pylance
 - Refactoring (rename, extract method)
 - Hover documentation
 
-Pylance does **not** do formatting or import sorting — that's Ruff's job.
+Pylance does **not** handle formatting or import sorting — that's Ruff's job.
 
 ## Ruff vs Pylance — What Each Owns
 
@@ -72,7 +74,7 @@ Pylance does **not** do formatting or import sorting — that's Ruff's job.
 
 **They are complementary, not competing.** Pylance handles intellisense and type analysis. Ruff handles code style and formatting.
 
-## Ruff vs mypy — Why Use Both
+## mypy — Deep Type Checking
 
 Ruff and mypy are also complementary:
 
@@ -118,7 +120,7 @@ Key points:
 - Pylance's built-in linting is minimal and won't conflict with Ruff in practice
 - `typeCheckingMode` controls how strict Pylance's type checking is (`off`, `basic`, `standard`, `strict`)
 
-## VS Code Extension Version vs Project Version
+### Extension version vs project version
 
 The Ruff VS Code extension bundles its own ruff binary. To use the project's pinned version instead:
 
@@ -136,6 +138,6 @@ In practice, minor version differences rarely matter since CI runs the pinned ve
 |---|---|---|
 | **Ruff** | Linting + formatting | `uv add --dev ruff` |
 | **Pylance** | Intellisense + type checking | VS Code Python extension |
-| **mypy** | Deep type checking | `uv add --dev mypy` |
+| **mypy** | Deep static type analysis | `uv add --dev mypy` |
 
 All three work together. No conflicts when configured as above.

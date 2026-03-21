@@ -1,5 +1,7 @@
 # Python: Packaging Concepts
 
+Python's packaging ecosystem covers how code is organized into modules and packages, how imports are resolved, how projects are structured, and how dependencies are installed and distributed.
+
 ## Module
 
 A single `.py` file.
@@ -29,7 +31,7 @@ from myapp import utils
 
 > **module = file, package = folder**
 
-Packages can be nested (subpackages) — each folder needs its own `__init__.py` (Python 3.3+ also supports [namespace packages](https://docs.python.org/3/glossary.html#term-namespace-package) without `__init__.py`, but regular packages are the norm):
+Packages can be nested (subpackages) — each folder needs its own `__init__.py`. Python 3.3+ also supports [namespace packages](https://docs.python.org/3/glossary.html#term-namespace-package) without `__init__.py`, but regular packages are the norm:
 
 ```
 myapp/
@@ -47,7 +49,7 @@ from myapp.auth import login
 from myapp.db.models import User
 ```
 
-In practice, rarely go more than 2-3 levels deep.
+In practice, rarely go more than 2–3 levels deep.
 
 ## How Python Resolves Imports
 
@@ -78,20 +80,25 @@ At each entry, Python looks for `<name>.py` (module) or `<name>/` with `__init__
 
 ## App vs Library
 
-**App** — has an entry point, meant to be run directly:
+**App** — has an entry point, meant to be run directly. Not imported by other projects.
 
-```python
-if __name__ == "__main__":
-    main()
-```
-
-`__name__` equals `"__main__"` only when the file is executed directly, not when imported. Modern projects use entry points instead of a standalone `main.py` (see [Modern Project Structure](#modern-project-structure)).
-
-**Library** — no entry point, meant to be imported by other code:
+**Library** — no entry point, meant to be imported:
 
 ```python
 import requests  # used, not run
 ```
+
+The traditional app entry point pattern:
+
+```python
+# main.py
+if __name__ == "__main__":
+    main()
+```
+
+`__name__` equals `"__main__"` only when the file is executed directly, not when imported. This guard prevents code from running when the file is imported as a module.
+
+Modern projects declare entry points in `pyproject.toml` instead of relying on a standalone `main.py` — see [Modern Project Structure](#modern-project-structure).
 
 ## Modern Project Structure
 
@@ -113,7 +120,7 @@ myproject/
 
 ### `pyproject.toml`
 
-The standard config file for Python projects, defined by PEPs 518/621. Not part of the language itself, but an official packaging standard governed by PyPA (Python Packaging Authority). Replaces the old `setup.py` + `requirements.txt` approach.
+The standard config file for Python projects, defined by PEPs 518/621. Governed by PyPA (Python Packaging Authority). Replaces the old `setup.py` + `requirements.txt` approach.
 
 ```toml
 [build-system]                    # ← frontend (pip/uv) reads this
@@ -148,7 +155,7 @@ python -m myapp serve              # via __main__.py
 
 ### How `uv run` works under the hood
 
-When you run `uv run myapp`, uv doesn't just execute a Python file. There's a build-and-install pipeline:
+When you run `uv run myapp`, uv doesn't just execute a Python file — there's a build-and-install pipeline:
 
 ```
 uv run myapp
@@ -171,9 +178,9 @@ This is why `[build-system]` matters even for apps you never publish. Without it
 
 uv caches the build result — you only pay the build cost the first time or when dependencies change. On subsequent runs it's near-instant.
 
-**If you skip the entry point entirely** and run `uv run python src/myapp/cli.py` directly, no build is needed — Python just executes the file. But you lose:
+**If you skip the entry point entirely** and run `uv run python src/myapp/cli.py` directly, no build is needed. But you lose:
 - The clean CLI command (`myapp` instead of `python src/myapp/cli.py`)
-- Reliable imports (especially with `src/` layout, since `src/` isn't in `sys.path` by default)
+- Reliable imports (since `src/` isn't in `sys.path` by default)
 
 ## Package Installers
 
@@ -188,11 +195,11 @@ pip list                  # show installed
 pip freeze                # show installed with exact versions
 ```
 
-pip is an installer, not a full project manager — no lock files, no venv management.
+pip is an installer only — no lock files, no venv management.
 
 ### uv
 
-A Rust rewrite of pip (by Astral, same team behind `ruff`). Not a wrapper — it reimplements package resolution, downloading, and installation from scratch. 10-100x faster than pip.
+A Rust rewrite of pip (by Astral, same team behind `ruff`). Not a wrapper — it reimplements package resolution, downloading, and installation from scratch. 10–100x faster than pip.
 
 ```bash
 uv pip install requests   # drop-in pip replacement
@@ -272,7 +279,7 @@ The **frontend** reads `[build-system]` to know which backend to call. The **bac
 
 | Backend | Notes |
 |---|---|
-| **hatchling** | Modern, minimal, fast (recommended for new projects) |
+| **hatchling** | Modern, minimal, fast — recommended for new projects |
 | **setuptools** | Legacy default, the oldest |
 | **poetry-core** | Used when you use Poetry |
 | **flit-core** | Ultra-minimal, pure Python only |
@@ -302,7 +309,9 @@ requests-2.31.0-py3-none-any.whl
 
 ## Development Workflow
 
-### Virtual environment (always use one)
+### Virtual environment
+
+Always use one. Without a venv, `pip install` modifies your system-wide Python — packages leak across projects and are harder to clean up.
 
 ```bash
 python3 -m venv .venv         # create
@@ -311,13 +320,11 @@ pip install -e ".[dev]"       # install project + dev tools
 deactivate                    # exit when done
 ```
 
-Without a venv, `pip install` modifies your system-wide Python — packages leak across projects and are harder to clean up.
-
 ### `python file.py` vs `pip install -e .`
 
-**`python file.py`** — runs the file directly. Imports resolved via `sys.path` (current directory). No install needed.
+**`python file.py`** — runs the file directly. Imports resolved via `sys.path`. No install needed, but doesn't work well with `src/` layout.
 
-**`pip install -e .`** — editable install. Creates a link from `site-packages` to your source directory. Code stays where it is, changes take effect immediately. You need this when:
+**`pip install -e .`** — editable install. Creates a link from `site-packages` to your source directory. Code stays where it is; changes take effect immediately. Required when:
 - Using `src/` layout (`src/` isn't in `sys.path` by default)
 - You want CLI entry points from `[project.scripts]`
 
@@ -327,9 +334,9 @@ Without a venv, `pip install` modifies your system-wide Python — packages leak
 edit → run → test → git push → CI builds .whl → upload to PyPI
 ```
 
-### For apps (not published — web apps, internal tools)
+### For apps (web apps, internal tools)
 
-No build step. Just ship source code:
+No build step needed for deployment. Just ship source code:
 
 ```bash
 # Development
@@ -374,7 +381,7 @@ pip install -r requirements.lock
 | Build | Packaging source into `.whl`/`.tar.gz` — not compilation |
 | Build backend | hatchling/setuptools/poetry-core — reads `[project]`, produces `.whl` |
 | pip | Python's built-in package installer |
-| uv | Rust rewrite of pip — 10-100x faster |
+| uv | Rust rewrite of pip — 10–100x faster |
 | poetry | Workflow tool — installer + lock files + venv + build |
 | PyPI | Default package registry (like npm for JS) |
 | `pip install -e .` | Editable install — live link to source, no rebuild needed |
