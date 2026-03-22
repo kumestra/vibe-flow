@@ -1,8 +1,0 @@
-repos:
-  - repo: local
-    hooks:
-      - id: forbid-binary-files
-        name: Forbid binary files
-        language: script
-        entry: .pre-commit-hooks/forbid-binary-files.sh
-        stages: [pre-commit]
