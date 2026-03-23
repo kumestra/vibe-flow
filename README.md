@@ -20,10 +20,9 @@ After cloning the repo, run:
 
 ```bash
 uv sync
-uv run pre-commit install
 ```
 
-`uv sync` installs all dependencies (including dev tools). `pre-commit install` sets up the git hooks so binary files are blocked on every commit.
+`uv sync` installs all dependencies (including dev tools).
 
 ## Running
 
