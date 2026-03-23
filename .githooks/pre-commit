@@ -1,0 +1,36 @@
+#!/bin/bash
+# This script runs automatically before every git commit.
+# It checks if any staged file is a binary file (e.g., images, PDFs, compiled binaries).
+# If a binary file is found, the commit is blocked.
+
+# Flag to track whether any binary file was found. 0 = no, 1 = yes.
+found=0
+
+# "git diff --cached --name-only" lists all file names currently staged for commit.
+# "while IFS= read -r file" loops through each file name, one per line.
+#   - IFS= prevents leading/trailing whitespace from being trimmed.
+#   - -r prevents backslashes from being interpreted as escape characters.
+while IFS= read -r file; do
+
+  # [[ -f "$file" ]] checks that the file actually exists on disk.
+  #
+  # "git diff --cached --numstat -- $file" outputs stats for a staged file.
+  #   - For text files, it shows numbers like: 10  2  filename
+  #   - For binary files, it shows dashes:     -   -  filename
+  #
+  # "grep -q ^-" checks if the output starts with a dash, meaning it's binary.
+  #   - -q means quiet mode (no output, just sets exit code).
+  if [[ -f "$file" ]] && git diff --cached --numstat -- "$file" | grep -q "^-"; then
+    echo "Binary file detected: $file"
+    found=1
+  fi
+
+done < <(git diff --cached --name-only)
+
+# If any binary file was found, print a help message and exit with code 1.
+# Exit code 1 tells git to abort the commit.
+# Exit code 0 (the default) would allow the commit to proceed.
+if [[ $found -eq 1 ]]; then
+  echo "Commit blocked: remove binary files from staging area with 'git reset HEAD <file>'"
+  exit 1
+fi
