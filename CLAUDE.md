@@ -1,5 +1,8 @@
 # Project Guidelines
 
+## General
+- Do not modify anything outside the current project directory. If you need to, notify the user and ask for explicit approval first — even if you have permission.
+
 ## Git
 - Working directory is already the repo root — use `git` directly, no `-C` flag needed.
 - Always push to remote immediately after creating a commit.
