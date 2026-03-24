@@ -5,5 +5,9 @@
       "Bash(git push)",
       "Bash(git add:*)"
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": ".claude/statusline.sh"
   }
 }
