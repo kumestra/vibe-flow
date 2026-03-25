@@ -3,6 +3,9 @@
 # It checks if any staged file is a binary file (e.g., images, PDFs, compiled binaries).
 # If a binary file is found, the commit is blocked.
 
+# Log file for pre-commit hook activity
+LOG_FILE="$(git rev-parse --show-toplevel)/logs/pre-commit.log"
+
 # Flag to track whether any binary file was found. 0 = no, 1 = yes.
 found=0
 
@@ -29,6 +32,9 @@ done < <(git diff --cached --name-only)
 # Exit code 1 tells git to abort the commit.
 # Exit code 0 (the default) would allow the commit to proceed.
 if [[ $found -eq 1 ]]; then
+  echo "$(date '+%Y-%m-%d %H:%M:%S') BLOCKED - binary files detected" >> "$LOG_FILE"
   echo "Commit blocked: remove binary files from staging area with 'git reset HEAD <file>'"
   exit 1
 fi
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') PASSED - no binary files" >> "$LOG_FILE"
