@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "WebSearch",
+      "WebFetch",
       "Bash(git push)",
       "Bash(git add:*)"
     ]
