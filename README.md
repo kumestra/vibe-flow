@@ -1,19 +1,5 @@
 # vibe-flow
 
-## Project Structure
-
-```
-vibe-flow/
-  pyproject.toml
-  src/
-    vibe_flow/
-      __init__.py
-      __main__.py           # python -m vibe_flow
-      cli.py                # entry point
-  tests/
-    __init__.py
-```
-
 ## Setup
 
 After cloning the repo, run:
@@ -22,7 +8,9 @@ After cloning the repo, run:
 uv sync
 ```
 
-`uv sync` installs all dependencies (including dev tools).
+```bash
+git config core.hooksPath .githooks
+```
 
 ## Running
 
