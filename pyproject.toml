@@ -17,6 +17,14 @@ dependencies = [
 [project.scripts]
 vibe-flow = "vibe_flow.cli:main"
 
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+
 [dependency-groups]
 dev = [
     "ruff>=0.15.7",
