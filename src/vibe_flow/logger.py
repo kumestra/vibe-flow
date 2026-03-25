@@ -17,7 +17,7 @@ logger.addHandler(_console)
 
 # File: DEBUG and above
 if _log_dir.exists():
-    _file = RotatingFileHandler(_log_file, maxBytes=1_000_000, backupCount=3)
+    _file = RotatingFileHandler(_log_file, maxBytes=1_000_000, backupCount=3, encoding="utf-8")
     _file.setLevel(logging.DEBUG)
     _file.setFormatter(
         logging.Formatter("%(asctime)s %(levelname)s %(filename)s:%(lineno)d - %(message)s")
