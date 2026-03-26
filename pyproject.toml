@@ -26,10 +26,19 @@ target-version = "py314"
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["D203", "D213"]
+ignore = [
+    "D203",   # "one blank line before class docstring" — conflicts with D211 (no blank line)
+    "D213",   # "summary on second line" — conflicts with D212 (summary on first line)
+    "COM812", # "trailing comma missing" — conflicts with ruff format which manages commas
+]
 
 [tool.ruff.lint.per-file-ignores]
-"scratch/**" = ["TD", "FIX", "INP001", "T201"]
+"scratch/**" = [
+    "TD",     # TODO comments are intentional reminders in scratch experiments
+    "FIX",    # FIXME comments are intentional reminders in scratch experiments
+    "INP001", # "missing __init__.py" — scratch scripts are not packages
+    "T201",   # "print found" — scratch scripts use print for output
+]
 
 [tool.ruff.format]
 quote-style = "double"
