@@ -21,6 +21,12 @@ vibe-flow = "vibe_flow.cli:main"
 line-length = 88
 target-version = "py314"
 
+[tool.ruff.lint]
+select = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"scratch/**" = ["TD", "FIX", "INP001", "T201"]
+
 [tool.ruff.format]
 quote-style = "double"
 docstring-code-format = true

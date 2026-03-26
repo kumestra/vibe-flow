@@ -38,3 +38,38 @@ if [[ $found -eq 1 ]]; then
 fi
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') PASSED - no binary files" >> "$LOG_FILE"
+
+# Lint staged Python files with ruff.
+# We check the staged content (not working directory) so that:
+#   - Unstaged changes don't cause false failures
+#   - Staged content with errors can't sneak through
+
+# Get list of staged Python files (Added, Copied, Modified only — skip Deleted).
+py_files=$(git diff --cached --name-only --diff-filter=ACM -- '*.py')
+
+if [[ -n "$py_files" ]]; then
+    lint_failed=0
+
+    # Loop through each staged Python file.
+    while IFS= read -r file; do
+
+        # "git show :$file" outputs the staged version of the file (from the index),
+        #   not the working directory version.
+        # "ruff check -" tells ruff to read from stdin instead of a file.
+        # "--stdin-filename $file" tells ruff the original filename so it can:
+        #   - Apply per-file-ignores (e.g. "scratch/**" rules)
+        #   - Show the correct filename in error messages
+        if ! git show ":$file" | uv run ruff check --stdin-filename "$file" -; then
+            lint_failed=1
+        fi
+
+    done <<< "$py_files"
+
+    if [[ $lint_failed -eq 1 ]]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') BLOCKED - ruff lint errors" >> "$LOG_FILE"
+        echo "Commit blocked: fix ruff lint errors above"
+        exit 1
+    fi
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') PASSED - ruff lint clean" >> "$LOG_FILE"
+fi
