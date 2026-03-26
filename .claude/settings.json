@@ -10,5 +10,18 @@
   "statusLine": {
     "type": "command",
     "command": ".claude/statusline.sh"
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/format-py.sh"
+          }
+        ]
+      }
+    ]
   }
 }
