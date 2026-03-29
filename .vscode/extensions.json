@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "eamodio.gitlens",
-        "ms-python.python"
+        "ms-python.python",
+        "bierner.markdown-mermaid"
     ]
 }
