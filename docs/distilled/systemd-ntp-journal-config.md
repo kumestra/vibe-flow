@@ -22,11 +22,11 @@
 
 Key responsibilities:
 
-- :rocket: **Booting** — starting services in the correct order with dependency management
-- :gear: **Service management** — starting, stopping, restarting, and monitoring daemons
-- :zap: **Parallel startup** — launching independent services simultaneously for faster boot
-- :scroll: **Logging** — centralized journal via `journalctl`
-- :wrench: **System tasks** — managing mounts, timers, network, login sessions, and more
+- 🚀 **Booting** — starting services in the correct order with dependency management
+- ⚙️ **Service management** — starting, stopping, restarting, and monitoring daemons
+- ⚡ **Parallel startup** — launching independent services simultaneously for faster boot
+- 📜 **Logging** — centralized journal via `journalctl`
+- 🔧 **System tasks** — managing mounts, timers, network, login sessions, and more
 
 ### systemctl
 
@@ -98,9 +98,9 @@ On Ubuntu 24.04 LTS, the default NTP client is **`systemd-timesyncd`** — a lig
 
 ### Key Characteristics
 
-- :white_check_mark: Simple, lightweight NTP **client** (not a server)
-- :one: Connects to **one server at a time** — if it fails, falls back to the next
-- :x: Does **not** query multiple servers simultaneously (use `chrony` for that)
+- ✅ Simple, lightweight NTP **client** (not a server)
+- 1️⃣ Connects to **one server at a time** — if it fails, falls back to the next
+- ❌ Does **not** query multiple servers simultaneously (use `chrony` for that)
 - Sufficient for most systems; for sub-millisecond accuracy, consider `chrony`[^1]
 
 ### Multiple NTP Servers
@@ -118,7 +118,7 @@ The sync interval is **dynamic**, not fixed:
 
 The daemon starts with short intervals and increases as the clock stabilizes, up to the max.
 
-> :bulb: **For time-sensitive systems**, reduce `PollIntervalMaxSec` (e.g., to 64 seconds). Polling every 64 seconds is well within acceptable NTP server limits — anything faster than 16 seconds is generally considered abusive.[^2]
+> 💡 **For time-sensitive systems**, reduce `PollIntervalMaxSec` (e.g., to 64 seconds). Polling every 64 seconds is well within acceptable NTP server limits — anything faster than 16 seconds is generally considered abusive.[^2]
 
 ### Config File
 
@@ -135,7 +135,7 @@ PollIntervalMaxSec=64
 #SaveIntervalSec=60
 ```
 
-:warning: After changing the config file, **restart the service** to apply:
+⚠️ After changing the config file, **restart the service** to apply:
 
 ```bash
 sudo systemctl restart systemd-timesyncd
@@ -165,10 +165,10 @@ flowchart LR
 
 ### Why Binary?
 
-- :mag: **Indexed searching** — fast filtering by unit, time, priority
-- :label: **Structured metadata** — PID, unit name, timestamp per entry
-- :shield: **Integrity** — tamper detection via sealing
-- :package: **Compression** — saves disk space
+- 🔍 **Indexed searching** — fast filtering by unit, time, priority
+- 🏷️ **Structured metadata** — PID, unit name, timestamp per entry
+- 🛡️ **Integrity** — tamper detection via sealing
+- 📦 **Compression** — saves disk space
 
 ### Journal Storage Location
 
