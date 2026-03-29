@@ -2,6 +2,7 @@
     "recommendations": [
         "eamodio.gitlens",
         "ms-python.python",
-        "bierner.markdown-mermaid"
+        "bierner.markdown-mermaid",
+        "bierner.markdown-footnotes"
     ]
 }

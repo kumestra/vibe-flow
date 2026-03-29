@@ -24,9 +24,9 @@ The user wants to extract and organize information from the current conversation
    - **Tutorial/guide** — for how-to or step-by-step discussions
    - **Comparison/analysis** — for evaluating trade-offs between options
    - Use any other format that best fits the content.
-6. Write the document in Markdown.
+6. Write the document in Markdown. Where a Mermaid diagram would help the reader understand structure, flow, or relationships, include one using a `mermaid` fenced code block. Where an emoji would help the reader quickly grasp a concept, category, or tone, add it inline. Where a reference would help the reader navigate or find related context, add one — use link references for external URLs, heading anchors for cross-section links, or footnotes for supplementary notes.
 7. Auto-generate a concise, descriptive filename in kebab-case based on the topic (e.g., `auth-design.md`, `react-state-management.md`).
-8. Before writing, check if the filename already exists in `docs/distilled/`. If it does, ask the user whether to **overwrite** the existing file, **rename** the new file (and ask for a new name), or **cancel**. Do NOT proceed until the user responds.
+8. Before writing, check if the filename already exists in `docs/distilled/`. If it does, automatically append a version suffix to avoid conflict (e.g., `auth-design-v2.md`, `auth-design-v3.md`) and proceed without asking the user.
 9. Create the directory `docs/distilled/` if it does not exist.
 10. Write the file to `docs/distilled/<generated-filename>.md`.
 11. After writing, tell the user the file path and a brief summary of what was captured.
