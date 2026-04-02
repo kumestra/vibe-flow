@@ -50,7 +50,8 @@ The user wants to extract and organize information from the current conversation
 ### Output
 
 7. Auto-generate a concise, descriptive filename in kebab-case based on the topic (e.g., `auth-design.md`, `react-state-management.md`). Check for filename conflicts in the target directory and append a version suffix if needed (e.g., `auth-design-v2.md`).
-8. Write the file:
-   - If `BLOG_DIR` is set: write to `$BLOG_DIR/src/data/blog/<filename>.md`.
+8. Determine the output directory:
+   - Check the `BLOG_DIR` environment variable. If it is not set in the shell, look for a `.env` file in the project root and read the `BLOG_DIR` value from it.
+   - If `BLOG_DIR` is found (from either source): write to `<BLOG_DIR>/src/data/blog/<filename>.md`.
    - Otherwise: write to `docs/distilled/<filename>.md` (create directory if needed).
 9. Tell the user the file path and a brief summary of what was captured.
