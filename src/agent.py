@@ -7,108 +7,14 @@ Flow:
 """
 
 import json
-import subprocess
 from dotenv import load_dotenv
 from openai import OpenAI
+
+from src.tools import get_schemas, execute
 
 load_dotenv()
 client = OpenAI()
 MODEL = "gpt-4o"
-
-# -- Tool definitions (OpenAI function calling format) ----------------------
-
-TOOLS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "bash",
-            "description": "Execute a bash command and return its output.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "command": {
-                        "type": "string",
-                        "description": "The bash command to run",
-                    }
-                },
-                "required": ["command"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "read_file",
-            "description": "Read the contents of a file.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "Absolute path to the file",
-                    }
-                },
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "write_file",
-            "description": "Write content to a file (creates or overwrites).",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "Absolute path to the file",
-                    },
-                    "content": {
-                        "type": "string",
-                        "description": "Content to write",
-                    },
-                },
-                "required": ["path", "content"],
-            },
-        },
-    },
-]
-
-# -- Tool execution (what actually runs) ------------------------------------
-
-
-def execute_tool(name: str, arguments: dict) -> str:
-    """Run a tool and return the result as a string."""
-    if name == "bash":
-        result = subprocess.run(
-            arguments["command"],
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        output = result.stdout
-        if result.stderr:
-            output += f"\nSTDERR:\n{result.stderr}"
-        if result.returncode != 0:
-            output += f"\n(exit code {result.returncode})"
-        return output or "(no output)"
-
-    elif name == "read_file":
-        with open(arguments["path"], "r") as f:
-            return f.read()
-
-    elif name == "write_file":
-        with open(arguments["path"], "w") as f:
-            f.write(arguments["content"])
-        return f"Wrote {len(arguments['content'])} bytes to {arguments['path']}"
-
-    else:
-        return f"Unknown tool: {name}"
-
-
-# -- Core agent loop --------------------------------------------------------
 
 SYSTEM_PROMPT = (
     "You are a helpful coding assistant. "
@@ -133,7 +39,7 @@ def agent_loop(user_input: str, messages: list):
         # 1. Call the LLM
         response = client.chat.completions.create(
             model=MODEL,
-            tools=TOOLS,
+            tools=get_schemas(),
             messages=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
         )
 
@@ -156,7 +62,7 @@ def agent_loop(user_input: str, messages: list):
             print(f"  [tool] {name}({json.dumps(arguments, indent=None)[:80]})")
 
             try:
-                result = execute_tool(name, arguments)
+                result = execute(name, arguments)
             except Exception as e:
                 result = f"Error: {e}"
 
@@ -168,9 +74,6 @@ def agent_loop(user_input: str, messages: list):
                     "content": result,
                 }
             )
-
-
-# -- REPL -------------------------------------------------------------------
 
 
 def main():
