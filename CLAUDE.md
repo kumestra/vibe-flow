@@ -101,6 +101,13 @@ pyproject.toml  — uv project config
 CLAUDE.md       — this file
 ```
 
+## Preferences
+
+- **OpenAI only** — user only has an OpenAI API key. Always use `from openai import OpenAI` and `gpt-4o`. Never use Anthropic SDK.
+- **Commit workflow** — when asked to "commit and push", combine git add + commit + push into one `&&`-chained command. Keep it fast, no extra confirmations.
+- **Doc analysis style** — for large analysis tasks, work section-by-section: read source → write analysis with actual source text + design patterns + lessons → append to doc → confirm before moving on. This builds deep understanding.
+- **Auto memory disabled** — all persistent context lives in this CLAUDE.md, not in `~/.claude` auto memory. This project moves across dev environments.
+
 ## Technical Notes
 
 - Project uses `uv` for Python package management
