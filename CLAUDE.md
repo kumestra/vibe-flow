@@ -48,10 +48,63 @@ When writing markdown files, use GitHub-Flavored Markdown (GFM). All GFM feature
 
 The goal is clear, effective documentation. If a GFM feature helps, use it.
 
+## Progress So Far
+
+### What's been analyzed and documented:
+
+1. **Core agent loop** (`docs/01-entry-point-and-core-loop.md`) — how query.ts works
+2. **Built-in tools** (`docs/02-built-in-tools.md`) — all 30+ tools, categories, execution flow
+3. **Navigating the source** (`docs/03-navigating-the-source.md`) — strategy for exploring 512K lines
+4. **System prompt overview** (`docs/04-system-prompt.md`) — how the prompt is assembled
+5. **Prompt caching** (`docs/05-prompt-caching.md`) — prefix caching, cost model, design rules
+6. **Why Claude Code works** (`docs/06-why-claude-code-works.md`) — same API, better engineering
+7. **LLM API comparison** (`docs/07-llm-api-comparison.md`) — OpenAI vs Anthropic in detail
+8. **Static system prompt analysis** (`docs/08-system-prompt-static-analysis.md`) — deep dive into all 7 static sections with actual prompt text
+9. **Dynamic system prompt analysis** (`docs/09-system-prompt-dynamic-analysis.md`) — all 11 dynamic sections, caching mechanism
+10. **System prompt summary** (`docs/10-system-prompt-summary.md`) — caching lifecycle, MCP best practices
+
+### What's been implemented:
+
+- `src/agent.py` — minimal agent loop using OpenAI API (gpt-4o)
+- `src/tools/` — tool directory structure mirroring Claude Code:
+  - `src/tools/bash/` — execute shell commands
+  - `src/tools/read_file/` — read files
+  - `src/tools/write_file/` — write files
+- `pyproject.toml` — uv Python project with `vibe-flow` entry point
+- `.env` — OpenAI API key (gitignored)
+
+### What to do next:
+
+- Add more tools: `edit` (string replacement), `grep` (search contents), `glob` (find files)
+- Improve system prompt: split into sections mirroring Claude Code's static/dynamic pattern
+- Add environment info to dynamic prompt (CWD, OS, date)
+- Add per-tool prompts (usage guidelines in tool descriptions)
+- Add permission system (auto-allow read tools, ask for write tools)
+- Add context management (compaction when approaching limits)
+- Add streaming responses
+- Add parallel tool execution
+
 ## Directory Structure
 
 ```
-docs/           — analysis documents
-src/            — Python rewrite
+docs/           — analysis documents (01-10 so far)
+src/
+├── __init__.py
+├── agent.py    — core agent loop
+└── tools/
+    ├── __init__.py       — tool registry
+    ├── bash/             — shell command execution
+    ├── read_file/        — file reading
+    └── write_file/       — file writing
+.env            — API key (gitignored)
+pyproject.toml  — uv project config
 CLAUDE.md       — this file
 ```
+
+## Technical Notes
+
+- Project uses `uv` for Python package management
+- User only has OpenAI API key — use OpenAI SDK, not Anthropic
+- Entry point: `uv run vibe-flow` or `uv run python src/agent.py`
+- Git branch: `tmp-claude-code-analysis`
+- All docs follow GFM with emoji, mermaid, tables where helpful
