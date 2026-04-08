@@ -38,6 +38,16 @@ while true:
     # loop back
 ```
 
+## Writing Style
+
+When writing markdown files, use GitHub-Flavored Markdown (GFM). All GFM features are available — use whichever ones make the document better:
+
+- Emoji if it improves readability or tone
+- Mermaid diagrams if they clarify architecture or flow
+- Tables, task lists, alerts, footnotes, math, etc.
+
+The goal is clear, effective documentation. If a GFM feature helps, use it.
+
 ## Directory Structure
 
 ```
