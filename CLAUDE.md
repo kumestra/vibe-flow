@@ -62,6 +62,12 @@ The goal is clear, effective documentation. If a GFM feature helps, use it.
 8. **Static system prompt analysis** (`docs/08-system-prompt-static-analysis.md`) — deep dive into all 7 static sections with actual prompt text
 9. **Dynamic system prompt analysis** (`docs/09-system-prompt-dynamic-analysis.md`) — all 11 dynamic sections, caching mechanism
 10. **System prompt summary** (`docs/10-system-prompt-summary.md`) — caching lifecycle, MCP best practices
+11. **Anthropic API pricing** (`docs/11-anthropic-api-pricing.md`) — cost model
+12. **OpenAI API data structures** (`docs/12-openai-api-data-structures.md`) — end-to-end tool calling example
+13. **Anthropic API data structures** (`docs/13-anthropic-api-data-structures.md`) — end-to-end tool use example
+14. **Key API difference** (`docs/14-key-api-difference-text-plus-tool.md`) — Claude returns text + tool call together
+15. **Transformer architecture** (`docs/15-transformer-architecture.md`) — pipeline from API input to token output
+16. **Tool execution deep dive** (`docs/16-tool-execution-deep-dive.md`) — the complete 12-step pipeline from tool_use to tool_result, with source file references for every layer
 
 ### What's been implemented:
 
