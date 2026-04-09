@@ -11,16 +11,11 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from src.tools import get_schemas, execute
+from src.system_prompt import build_system_prompt
 
 load_dotenv()
 client = OpenAI()
 MODEL = "gpt-4o"
-
-SYSTEM_PROMPT = (
-    "You are a helpful coding assistant. "
-    "Use the provided tools to help the user with their tasks. "
-    "Be concise in your responses."
-)
 
 
 def agent_loop(user_input: str, messages: list):
@@ -40,7 +35,7 @@ def agent_loop(user_input: str, messages: list):
         response = client.chat.completions.create(
             model=MODEL,
             tools=get_schemas(),
-            messages=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+            messages=[{"role": "system", "content": build_system_prompt()}] + messages,
         )
 
         message = response.choices[0].message
