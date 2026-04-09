@@ -256,3 +256,37 @@ This reveals a deeper truth — **the LLM has no self-control over its own outpu
 | Stop sequences | Backend watches for a specific string, stops when it appears |
 
 The model is a pure function: give it tokens, it predicts the next one. All generation control lives in the backend, not the model.
+
+**Why cut-off thinking still works — the fine-tuning reason:**
+
+When the backend injects `</think>` mid-stream, the thinking block is incomplete. This is fine because of how the model was fine-tuned.
+
+During fine-tuning, the model was trained on massive examples where thinking content was:
+- incomplete and cut off
+- contradictory and self-correcting
+- going down wrong paths
+- messy and unstructured
+
+So the model learned: **"whatever is between `<think>` and `</think>`, use it as a hint, then produce the best answer I can."**
+
+The thinking block is not a formal proof that must be complete — it's a scratchpad:
+
+```
+<think>
+Let me consider option A... actually no
+What about B... hmm
+The key insight is X, so the answer must be...    ← budget cut off here
+</think>                                           ← injected by backend
+answer based on whatever reasoning existed
+```
+
+The model handles this gracefully because:
+1. It was fine-tuned on messy/incomplete thinking — this is just another noisy input
+2. It has no awareness of being "interrupted" — each forward pass is stateless
+3. `</think>` is purely a pattern trigger — "now answer", regardless of what came before
+
+The real tradeoff of thinking budget is **quality vs cost**:
+
+| Budget too low | Budget too high |
+|---|---|
+| Reasoning cut short → potentially weaker answer | Model overthinks → slower and more expensive |
