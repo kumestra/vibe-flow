@@ -6,12 +6,15 @@ Flow:
                                        → no tools?  → print response → done
 """
 
-import json
+import os
+
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from src.tools import get_schemas, execute
 from src.system_prompt import build_system_prompt
+from src.tool_base import ToolUseContext
+from src.tool_runner import run_tool_use
+from src.tools import TOOLS_BY_NAME, get_schemas
 
 load_dotenv()
 client = OpenAI()
@@ -30,12 +33,17 @@ def agent_loop(user_input: str, messages: list):
     """
     messages.append({"role": "user", "content": user_input})
 
+    # One ToolUseContext per turn. Phase 2+ will populate this further
+    # (abort signal, permissions, hooks, budget, etc.).
+    ctx = ToolUseContext(messages=messages, cwd=os.getcwd())
+
     while True:
         # 1. Call the LLM
+        system_msg = {"role": "system", "content": build_system_prompt()}
         response = client.chat.completions.create(
             model=MODEL,
             tools=get_schemas(),
-            messages=[{"role": "system", "content": build_system_prompt()}] + messages,
+            messages=[system_msg] + messages,
         )
 
         message = response.choices[0].message
@@ -49,24 +57,20 @@ def agent_loop(user_input: str, messages: list):
                 print(f"\n{message.content}")
             return
 
-        # 4. Execute each tool call and collect results
+        # 4. Execute each tool call through the pipeline
         for tool_call in message.tool_calls:
             name = tool_call.function.name
-            arguments = json.loads(tool_call.function.arguments)
+            args_preview = tool_call.function.arguments[:80]
+            print(f"  [tool] {name}({args_preview})")
 
-            print(f"  [tool] {name}({json.dumps(arguments, indent=None)[:80]})")
-
-            try:
-                result = execute(name, arguments)
-            except Exception as e:
-                result = f"Error: {e}"
+            result = run_tool_use(tool_call, ctx, TOOLS_BY_NAME)
 
             # 5. Append tool result and loop back
             messages.append(
                 {
                     "role": "tool",
                     "tool_call_id": tool_call.id,
-                    "content": result,
+                    "content": result.for_assistant,
                 }
             )
 

@@ -70,43 +70,50 @@ The goal is clear, effective documentation. If a GFM feature helps, use it.
 16. **Tool execution deep dive** (`docs/16-tool-execution-deep-dive.md`) — the complete 12-step pipeline from tool_use to tool_result, with source file references for every layer
 17. **Sub-agent design** (`docs/17-sub-agent-design.md`) — general concept: recursive agent loop, isolation, parallelism
 18. **Sub-agent source analysis** (`docs/18-sub-agent-source-analysis.md`) — complete source-level deep dive: AgentTool, runAgent, built-in agents, tool filtering, fork path, worktree isolation, sync/async execution, cleanup
+19. **Skills design** (`docs/19-skills-design.md`) — general concept of the skills system
+20. **Tool execution Python rewrite plan** (`docs/20-tool-execution-python-rewrite-plan.md`) — 6-phase incremental roadmap for porting Claude Code's 12-step tool pipeline to Python
 
 ### What's been implemented:
 
 - `src/agent.py` — minimal agent loop using OpenAI API (gpt-4o)
-- `src/tools/` — tool directory structure mirroring Claude Code:
-  - `src/tools/bash/` — execute shell commands
-  - `src/tools/read_file/` — read files
-  - `src/tools/write_file/` — write files
+- `src/tool_base.py` — `Tool` ABC, `ToolUseContext`, `ToolResult` (Phase 1)
+- `src/tool_runner.py` — `run_tool_use` pipeline skeleton (Phase 1)
+- `src/tools/` — tool directory:
+  - `src/tools/get_current_time/` — single trivial tool; focus is on the pipeline, not on tool implementations
 - `pyproject.toml` — uv Python project with `vibe-flow` entry point
 - `.env` — OpenAI API key (gitignored)
 
+### Design choice: one trivial tool
+
+We deliberately keep exactly **one** tool (`get_current_time`) while building out the tool-execution pipeline. The goal is to focus on how tools are *used* (validation, permissions, hooks, orchestration, persistence), not on tool implementations. New tools get added only when a phase needs a second one to demonstrate its behavior (e.g. Phase 3 permissions needs a "write-ish" tool, Phase 4 concurrency needs multiple concurrency-safe tools).
+
 ### What to do next:
 
-- Add more tools: `edit` (string replacement), `grep` (search contents), `glob` (find files)
-- Improve system prompt: split into sections mirroring Claude Code's static/dynamic pattern
-- Add environment info to dynamic prompt (CWD, OS, date)
-- Add per-tool prompts (usage guidelines in tool descriptions)
-- Add permission system (auto-allow read tools, ask for write tools)
-- Add context management (compaction when approaching limits)
-- Add streaming responses
-- Add parallel tool execution
+Follow the 6-phase plan in `docs/20-tool-execution-python-rewrite-plan.md`:
+
+- [x] **Phase 1** — Shape the abstraction (`Tool`, `ToolUseContext`, `ToolResult`, `run_tool_use` skeleton)
+- [ ] **Phase 2** — Validation layers (lookup + aliases, abort check, Pydantic schema, semantic `validate_input`)
+- [ ] **Phase 3** — Permissions (modes, rule store, user prompt)
+- [ ] **Phase 4** — Serial vs concurrent orchestration (partitioning + thread pool)
+- [ ] **Phase 5** — Pre/post shell hooks
+- [ ] **Phase 6** — Large-result persistence + aggregate budget
 
 ## Directory Structure
 
 ```
-docs/           — analysis documents (01-10 so far)
+docs/              — analysis documents
 src/
 ├── __init__.py
-├── agent.py    — core agent loop
+├── agent.py       — core agent loop
+├── system_prompt.py
+├── tool_base.py   — Tool ABC, ToolUseContext, ToolResult
+├── tool_runner.py — run_tool_use pipeline skeleton
 └── tools/
-    ├── __init__.py       — tool registry
-    ├── bash/             — shell command execution
-    ├── read_file/        — file reading
-    └── write_file/       — file writing
-.env            — API key (gitignored)
-pyproject.toml  — uv project config
-CLAUDE.md       — this file
+    ├── __init__.py          — tool registry
+    └── get_current_time/    — the single current tool
+.env               — API key (gitignored)
+pyproject.toml     — uv project config
+CLAUDE.md          — this file
 ```
 
 ## Preferences
@@ -115,6 +122,7 @@ CLAUDE.md       — this file
 - **Commit workflow** — when asked to "commit and push", run commands separately: `git add` first, then `git commit` alone (never chain commit with other commands), then `git push`. This prevents unintended commits if something fails.
 - **Doc analysis style** — for large analysis tasks, work section-by-section: read source → write analysis with actual source text + design patterns + lessons → append to doc → confirm before moving on. This builds deep understanding.
 - **Auto memory disabled** — all persistent context lives in this CLAUDE.md, not in `~/.claude` auto memory. This project moves across dev environments.
+- **Code line length** — when writing or editing Python code, keep every line to a maximum of 80 characters. Wrap long expressions, hoist long literals into locals, and break long function signatures across multiple lines rather than letting a line exceed 80. This applies to code only, not to docs or commit messages.
 
 ## Technical Notes
 
