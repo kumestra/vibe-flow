@@ -68,6 +68,8 @@ The goal is clear, effective documentation. If a GFM feature helps, use it.
 14. **Key API difference** (`docs/14-key-api-difference-text-plus-tool.md`) — Claude returns text + tool call together
 15. **Transformer architecture** (`docs/15-transformer-architecture.md`) — pipeline from API input to token output
 16. **Tool execution deep dive** (`docs/16-tool-execution-deep-dive.md`) — the complete 12-step pipeline from tool_use to tool_result, with source file references for every layer
+17. **Sub-agent design** (`docs/17-sub-agent-design.md`) — general concept: recursive agent loop, isolation, parallelism
+18. **Sub-agent source analysis** (`docs/18-sub-agent-source-analysis.md`) — complete source-level deep dive: AgentTool, runAgent, built-in agents, tool filtering, fork path, worktree isolation, sync/async execution, cleanup
 
 ### What's been implemented:
 
