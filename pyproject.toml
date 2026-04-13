@@ -5,6 +5,7 @@ description = "Python rewrite of Claude Code's core agent logic"
 requires-python = ">=3.12"
 dependencies = [
     "openai",
+    "pydantic>=2.0",
     "python-dotenv>=1.2.2",
 ]
 

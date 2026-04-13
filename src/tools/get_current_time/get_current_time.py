@@ -1,7 +1,18 @@
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from src.tool_base import Tool, ToolResult, ToolUseContext
+from pydantic import BaseModel
+
+from src.tool_base import (
+    Tool,
+    ToolResult,
+    ToolUseContext,
+    ValidationResult,
+)
+
+
+class _Input(BaseModel):
+    timezone: str = "UTC"
 
 
 class GetCurrentTimeTool(Tool):
@@ -24,6 +35,21 @@ class GetCurrentTimeTool(Tool):
         },
         "required": [],
     }
+
+    InputModel = _Input
+
+    def validate_input(
+        self, args: dict, ctx: ToolUseContext
+    ) -> ValidationResult:
+        tz_name = args.get("timezone", "UTC")
+        try:
+            ZoneInfo(tz_name)
+        except (ZoneInfoNotFoundError, KeyError):
+            return ValidationResult.failure(
+                f"Unknown timezone '{tz_name}'. "
+                "Use an IANA name such as 'UTC' or 'America/New_York'."
+            )
+        return ValidationResult.success()
 
     def call(self, args: dict, ctx: ToolUseContext) -> ToolResult:
         tz_name = args.get("timezone", "UTC")
