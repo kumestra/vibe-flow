@@ -1,89 +1,103 @@
 """
-Minimal agent loop — the core of how Claude Code works, using OpenAI API.
+Agent loop.
 
 Flow:
     user input → messages → call LLM → tool calls? → execute tools → loop
                                        → no tools?  → print response → done
+
+Tool calls within a turn run serially, one at a time.
 """
 
 import os
+from typing import Any
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
+from openai.types.chat.chat_completion_message_tool_call import (
+    ChatCompletionMessageToolCall,
+)
 
 from src.system_prompt import build_system_prompt
-from src.tool_base import ToolUseContext
+from src.tool_base import ToolResult, ToolUseContext
 from src.tool_runner import run_tool_use
 from src.tools import TOOLS_BY_NAME, get_schemas
 
 load_dotenv()
-client = OpenAI()
-MODEL = "gpt-4o"
+client: OpenAI = OpenAI()
+MODEL: str = "gpt-4o"
 
 
-def agent_loop(user_input: str, messages: list):
+def query(
+    user_input: str,
+    messages: list[ChatCompletionMessageParam],
+) -> None:
     """
-    The core loop — mirrors query.ts:
+    Run one user turn — mirrors query() in query.ts.
 
         while true:
             response = call_llm(messages, tools)
             if no tool calls: return response
-            execute tools, append results
+            execute tools serially, append results
             loop
     """
     messages.append({"role": "user", "content": user_input})
 
-    # One ToolUseContext per turn. Phase 2+ will populate this further
-    # (abort signal, permissions, hooks, budget, etc.).
-    ctx = ToolUseContext(messages=messages, cwd=os.getcwd())
+    ctx: ToolUseContext = ToolUseContext(
+        messages=messages,
+        cwd=os.getcwd(),
+    )
 
     while True:
         # 1. Call the LLM
-        system_msg = {"role": "system", "content": build_system_prompt()}
-        response = client.chat.completions.create(
+        system_msg: ChatCompletionMessageParam = {
+            "role": "system",
+            "content": build_system_prompt(),
+        }
+        response: Any = client.chat.completions.create(
             model=MODEL,
             tools=get_schemas(),
             messages=[system_msg] + messages,
         )
 
-        message = response.choices[0].message
+        message: Any = response.choices[0].message
 
         # 2. Append assistant response to history
         messages.append(message)
 
-        # 3. Check if there are tool calls — if not, we're done
+        # 3. No tool calls → we're done
         if not message.tool_calls:
             if message.content:
                 print(f"\n{message.content}")
             return
 
-        # 4. Execute each tool call through the pipeline
-        for tool_call in message.tool_calls:
-            name = tool_call.function.name
-            args_preview = tool_call.function.arguments[:80]
+        # 4. Execute tool calls serially
+        tc: ChatCompletionMessageToolCall
+        for tc in message.tool_calls:
+            name: str = tc.function.name
+            args_preview: str = tc.function.arguments[:80]
             print(f"  [tool] {name}({args_preview})")
 
-            result = run_tool_use(tool_call, ctx, TOOLS_BY_NAME)
+            result: ToolResult = run_tool_use(tc, ctx, TOOLS_BY_NAME)
 
-            # 5. Append tool result and loop back
             messages.append(
                 {
                     "role": "tool",
-                    "tool_call_id": tool_call.id,
+                    "tool_call_id": tc.id,
                     "content": result.for_assistant,
                 }
             )
 
 
-def main():
+def main() -> None:
     print("Minimal Agent (type 'quit' to exit)")
     print("-" * 45)
 
-    messages = []
+    messages: list[ChatCompletionMessageParam] = []
 
     while True:
         try:
-            user_input = input("\n> ").strip()
+            user_input: str = input("\n> ").strip()
         except (EOFError, KeyboardInterrupt):
             print("\nBye!")
             break
@@ -95,7 +109,7 @@ def main():
             break
 
         try:
-            agent_loop(user_input, messages)
+            query(user_input, messages)
         except Exception as e:
             print(f"Error: {e}")
 

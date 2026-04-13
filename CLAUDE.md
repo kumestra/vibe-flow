@@ -75,28 +75,21 @@ The goal is clear, effective documentation. If a GFM feature helps, use it.
 
 ### What's been implemented:
 
-- `src/agent.py` — minimal agent loop using OpenAI API (gpt-4o)
-- `src/tool_base.py` — `Tool` ABC, `ToolUseContext`, `ToolResult` (Phase 1)
-- `src/tool_runner.py` — `run_tool_use` pipeline skeleton (Phase 1)
-- `src/tools/` — tool directory:
-  - `src/tools/get_current_time/` — single trivial tool; focus is on the pipeline, not on tool implementations
+- `src/agent.py` — agent loop: calls LLM, runs tool calls serially, loops
+- `src/tool_base.py` — `Tool` ABC, `ToolUseContext`, `ToolResult`
+- `src/tool_runner.py` — `run_tool_use`: lookup → abort → parse → call
+- `src/tools/` — three tools: `get_current_time`, `read_file`, `write_file`
 - `pyproject.toml` — uv Python project with `vibe-flow` entry point
 - `.env` — OpenAI API key (gitignored)
 
-### Design choice: one trivial tool
-
-We deliberately keep exactly **one** tool (`get_current_time`) while building out the tool-execution pipeline. The goal is to focus on how tools are *used* (validation, permissions, hooks, orchestration, persistence), not on tool implementations. New tools get added only when a phase needs a second one to demonstrate its behavior (e.g. Phase 3 permissions needs a "write-ish" tool, Phase 4 concurrency needs multiple concurrency-safe tools).
-
 ### What to do next:
 
-Follow the 6-phase plan in `docs/20-tool-execution-python-rewrite-plan.md`:
+The core agent loop works. The following systems need design before implementation:
 
-- [x] **Phase 1** — Shape the abstraction (`Tool`, `ToolUseContext`, `ToolResult`, `run_tool_use` skeleton)
-- [ ] **Phase 2** — Validation layers (lookup + aliases, abort check, Pydantic schema, semantic `validate_input`)
-- [ ] **Phase 3** — Permissions (modes, rule store, user prompt)
-- [ ] **Phase 4** — Serial vs concurrent orchestration (partitioning + thread pool)
-- [ ] **Phase 5** — Pre/post shell hooks
-- [ ] **Phase 6** — Large-result persistence + aggregate budget
+- **Permissions** — needs design; Claude Code's permission system touches more than tool execution
+- **Hooks** — needs design; hooks are a broad system not limited to tools
+- **Validation** — needs design; decide what to validate at which layer
+- **Concurrency** — needs design; simple serial execution is correct, concurrent needs conflict analysis
 
 ## Directory Structure
 
@@ -104,13 +97,15 @@ Follow the 6-phase plan in `docs/20-tool-execution-python-rewrite-plan.md`:
 docs/              — analysis documents
 src/
 ├── __init__.py
-├── agent.py       — core agent loop
+├── agent.py         — agent loop: LLM → tools → loop
 ├── system_prompt.py
-├── tool_base.py   — Tool ABC, ToolUseContext, ToolResult
-├── tool_runner.py — run_tool_use pipeline skeleton
+├── tool_base.py     — Tool ABC, ToolUseContext, ToolResult
+├── tool_runner.py   — run_tool_use: lookup → abort → parse → call
 └── tools/
-    ├── __init__.py          — tool registry
-    └── get_current_time/    — the single current tool
+    ├── __init__.py        — tool registry
+    ├── get_current_time/
+    ├── read_file/
+    └── write_file/
 .env               — API key (gitignored)
 pyproject.toml     — uv project config
 CLAUDE.md          — this file
