@@ -82,39 +82,3 @@ async def query(
                     "content": result.for_assistant,
                 }
             )
-
-
-async def _main_async() -> None:
-    print("Minimal Agent (type 'quit' to exit)")
-    print("-" * 45)
-
-    messages: list[ChatCompletionMessageParam] = []
-
-    while True:
-        try:
-            user_input: str = input("\n> ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print("\nBye!")
-            break
-
-        if not user_input:
-            continue
-        if user_input.lower() in ("quit", "exit"):
-            print("Bye!")
-            break
-
-        try:
-            response: str = await query(user_input, messages)
-            if response:
-                print(f"\n{response}")
-        except Exception as e:
-            print(f"Error: {e}")
-
-
-def main() -> None:
-    import asyncio
-    asyncio.run(_main_async())
-
-
-if __name__ == "__main__":
-    main()

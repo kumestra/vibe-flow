@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
-vibe-flow = "src.agent:main"
+vibe-flow = "src.main:main"
 
 [build-system]
 requires = ["hatchling"]
