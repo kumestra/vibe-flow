@@ -3,16 +3,17 @@ Agent loop.
 
 Flow:
     user input → messages → call LLM → tool calls? → execute tools → loop
-                                       → no tools?  → print response → done
+                                       → no tools?  → return response → done
 
 Tool calls within a turn run serially, one at a time.
+Uses AsyncOpenAI so callers can await without blocking the event loop.
 """
 
 import os
 from typing import Any
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall,
@@ -24,20 +25,20 @@ from src.tool_runner import run_tool_use
 from src.tools import TOOLS_BY_NAME, get_schemas
 
 load_dotenv()
-client: OpenAI = OpenAI()
+client: AsyncOpenAI = AsyncOpenAI()
 MODEL: str = "gpt-4o"
 
 
-def query(
+async def query(
     user_input: str,
     messages: list[ChatCompletionMessageParam],
-) -> None:
+) -> str:
     """
     Run one user turn — mirrors query() in query.ts.
 
         while true:
-            response = call_llm(messages, tools)
-            if no tool calls: return response
+            response = await call_llm(messages, tools)
+            if no tool calls: return response text
             execute tools serially, append results
             loop
     """
@@ -54,7 +55,7 @@ def query(
             "role": "system",
             "content": build_system_prompt(),
         }
-        response: Any = client.chat.completions.create(
+        response: Any = await client.chat.completions.create(
             model=MODEL,
             tools=get_schemas(),
             messages=[system_msg] + messages,
@@ -65,19 +66,13 @@ def query(
         # 2. Append assistant response to history
         messages.append(message)
 
-        # 3. No tool calls → we're done
+        # 3. No tool calls → return the final text
         if not message.tool_calls:
-            if message.content:
-                print(f"\n{message.content}")
-            return
+            return message.content or ""
 
         # 4. Execute tool calls serially
         tc: ChatCompletionMessageToolCall
         for tc in message.tool_calls:
-            name: str = tc.function.name
-            args_preview: str = tc.function.arguments[:80]
-            print(f"  [tool] {name}({args_preview})")
-
             result: ToolResult = run_tool_use(tc, ctx, TOOLS_BY_NAME)
 
             messages.append(
@@ -89,7 +84,7 @@ def query(
             )
 
 
-def main() -> None:
+async def _main_async() -> None:
     print("Minimal Agent (type 'quit' to exit)")
     print("-" * 45)
 
@@ -109,9 +104,16 @@ def main() -> None:
             break
 
         try:
-            query(user_input, messages)
+            response: str = await query(user_input, messages)
+            if response:
+                print(f"\n{response}")
         except Exception as e:
             print(f"Error: {e}")
+
+
+def main() -> None:
+    import asyncio
+    asyncio.run(_main_async())
 
 
 if __name__ == "__main__":
