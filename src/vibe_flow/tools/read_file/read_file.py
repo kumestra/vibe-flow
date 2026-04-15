@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.tool_base import Tool, ToolResult, ToolUseContext
+from vibe_flow.tool_base import Tool, ToolResult, ToolUseContext
 
 
 class ReadFileTool(Tool):

@@ -19,10 +19,10 @@ from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall,
 )
 
-from src.system_prompt import build_system_prompt
-from src.tool_base import ToolResult, ToolUseContext
-from src.tool_runner import run_tool_use
-from src.tools import TOOLS_BY_NAME, get_schemas
+from vibe_flow.system_prompt import build_system_prompt
+from vibe_flow.tool_base import ToolResult, ToolUseContext
+from vibe_flow.tool_runner import run_tool_use
+from vibe_flow.tools import TOOLS_BY_NAME, get_schemas
 
 load_dotenv()
 client: AsyncOpenAI = AsyncOpenAI()

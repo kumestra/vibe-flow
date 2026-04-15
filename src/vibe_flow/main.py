@@ -22,7 +22,7 @@ from textual.binding import Binding
 from textual.widgets import Footer, Header, Input, RichLog
 from openai.types.chat import ChatCompletionMessageParam
 
-from src.agent import query
+from vibe_flow.agent import query
 
 
 class ChatApp(App):

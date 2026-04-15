@@ -16,7 +16,7 @@ from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall,
 )
 
-from src.tool_base import Tool, ToolResult, ToolUseContext
+from vibe_flow.tool_base import Tool, ToolResult, ToolUseContext
 
 def run_tool_use(
     tool_call: ChatCompletionMessageToolCall,
