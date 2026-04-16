@@ -1,6 +1,7 @@
 {
   "recommendations": [
     "ms-python.python",
-    "openai.chatgpt"
+    "openai.chatgpt",
+    "qwtel.sqlite-viewer"
   ]
 }
