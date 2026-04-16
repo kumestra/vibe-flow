@@ -16,6 +16,9 @@ Input is disabled during the call and re-enabled when the
 response arrives.
 """
 
+import os
+import uuid
+
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -23,6 +26,7 @@ from textual.widgets import Footer, Header, Input, RichLog
 from openai.types.chat import ChatCompletionMessageParam
 
 from vibe_flow.agent import query
+from vibe_flow.logger import SessionLogger
 
 
 class ChatApp(App):
@@ -42,7 +46,11 @@ class ChatApp(App):
 
     def __init__(self) -> None:
         super().__init__()
+        self.session_id: str = str(uuid.uuid4())
         self.messages: list[ChatCompletionMessageParam] = []
+        self.logger: SessionLogger = SessionLogger(
+            self.session_id, os.getcwd()
+        )
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -68,7 +76,9 @@ class ChatApp(App):
 
     @work
     async def _run_agent(self, user_input: str) -> None:
-        response: str = await query(user_input, self.messages)
+        response: str = await query(
+            user_input, self.messages, self.logger
+        )
         self._show_response(response)
 
     def _show_response(self, response: str) -> None:
