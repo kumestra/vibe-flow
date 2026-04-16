@@ -19,6 +19,7 @@ response arrives.
 import os
 import uuid
 
+from rich.markdown import Markdown
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -81,9 +82,9 @@ class ChatApp(App):
         self._show_response(response)
 
     def _show_response(self, response: str) -> None:
-        self.query_one(RichLog).write(
-            f"[bold green]Assistant:[/] {response}"
-        )
+        log: RichLog = self.query_one(RichLog)
+        log.write("[bold green]Assistant:[/]")
+        log.write(Markdown(response))
         input_widget = self.query_one(Input)
         input_widget.disabled = False
         input_widget.focus()
