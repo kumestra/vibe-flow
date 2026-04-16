@@ -23,7 +23,6 @@ from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Footer, Header, Input, RichLog
-from openai.types.chat import ChatCompletionMessageParam
 
 from vibe_flow.agent import query
 from vibe_flow.logger import SessionLogger
@@ -47,7 +46,7 @@ class ChatApp(App):
     def __init__(self) -> None:
         super().__init__()
         self.session_id: str = str(uuid.uuid4())
-        self.messages: list[ChatCompletionMessageParam] = []
+        self.messages: list[dict] = []
         self.logger: SessionLogger = SessionLogger(
             self.session_id, os.getcwd()
         )

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Python rewrite of Claude Code's core agent logic"
 requires-python = ">=3.12"
 dependencies = [
-    "openai",
+    "litellm",
     "python-dotenv>=1.2.2",
     "textual>=0.80",
 ]

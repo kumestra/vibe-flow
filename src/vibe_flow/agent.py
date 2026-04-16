@@ -6,7 +6,7 @@ Flow:
                                        → no tools?  → return response → done
 
 Tool calls within a turn run serially, one at a time.
-Uses AsyncOpenAI so callers can await without blocking the event loop.
+Uses litellm for provider-agnostic async LLM calls.
 """
 
 import json
@@ -14,11 +14,7 @@ import os
 from typing import Any
 
 from dotenv import load_dotenv
-from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionMessageParam
-from openai.types.chat.chat_completion_message_tool_call import (
-    ChatCompletionMessageToolCall,
-)
+from litellm import acompletion
 
 from vibe_flow.logger import SessionLogger
 from vibe_flow.system_prompt import build_system_prompt
@@ -27,13 +23,12 @@ from vibe_flow.tool_runner import run_tool_use
 from vibe_flow.tools import TOOLS_BY_NAME, get_schemas
 
 load_dotenv()
-client: AsyncOpenAI = AsyncOpenAI()
 MODEL: str = "gpt-4o"
 
 
 async def query(
     user_input: str,
-    messages: list[ChatCompletionMessageParam],
+    messages: list[dict[str, Any]],
     logger: SessionLogger,
 ) -> str:
     """
@@ -55,14 +50,14 @@ async def query(
 
     while True:
         # 1. Call the LLM
-        system_msg: ChatCompletionMessageParam = {
+        system_msg: dict[str, Any] = {
             "role": "system",
             "content": build_system_prompt(),
         }
         tools: list[Any] = get_schemas()
         logger.log_llm_request(messages, tools)
 
-        response: Any = await client.chat.completions.create(
+        response: Any = await acompletion(
             model=MODEL,
             tools=tools,
             messages=[system_msg] + messages,
@@ -81,7 +76,6 @@ async def query(
             return final
 
         # 4. Execute tool calls serially
-        tc: ChatCompletionMessageToolCall
         for tc in message.tool_calls:
             input_args: dict[str, Any] = json.loads(
                 tc.function.arguments
