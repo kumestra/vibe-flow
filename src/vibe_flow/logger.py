@@ -6,14 +6,13 @@ Database location:
 
 Schema:
     session — one row per app launch
-    event   — one row per log event, JSON payload in data column
+    event   — one row per LLM interaction (request, response, user, assistant)
+    tool    — one row per tool call, linked to the llm_response that triggered it
 
 Event types and their data shape:
     user         {content}
     llm_request  {messages, tools}
     llm_response {message}
-    tool_call    {name, input}
-    tool_result  {name, output}
     assistant    {content}
 """
 
@@ -24,7 +23,9 @@ from pathlib import Path
 from typing import Any
 
 
-_DB_PATH: Path = Path(__file__).parent.parent.parent / "logs" / "vibe_flow.db"
+_DB_PATH: Path = (
+    Path(__file__).parent.parent.parent / "logs" / "vibe_flow.db"
+)
 
 
 def _now() -> str:
@@ -62,8 +63,22 @@ def _init_db(conn: sqlite3.Connection) -> None:
         )
     """)
     conn.execute("""
+        CREATE TABLE IF NOT EXISTS tool (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL REFERENCES event(id),
+            name     TEXT NOT NULL,
+            input    TEXT NOT NULL,
+            output   TEXT NOT NULL,
+            ts       TEXT NOT NULL
+        )
+    """)
+    conn.execute("""
         CREATE INDEX IF NOT EXISTS event_session_idx
             ON event(session_id)
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS tool_event_idx
+            ON tool(event_id)
     """)
     conn.commit()
 
@@ -90,8 +105,9 @@ class SessionLogger:
         )
         self._conn.commit()
 
-    def _write(self, type: str, data: dict[str, Any]) -> None:
-        self._conn.execute(
+    def _write(self, type: str, data: dict[str, Any]) -> int:
+        """Insert one event row and return its id."""
+        cursor = self._conn.execute(
             """
             INSERT INTO event (session_id, type, data, ts)
             VALUES (?, ?, ?, ?)
@@ -99,6 +115,7 @@ class SessionLogger:
             (self._session_id, type, _dump(data), _now()),
         )
         self._conn.commit()
+        return cursor.lastrowid
 
     def log_user(self, content: str) -> None:
         self._write("user", {"content": content})
@@ -110,18 +127,26 @@ class SessionLogger:
             "llm_request", {"messages": messages, "tools": tools}
         )
 
-    def log_llm_response(self, message: Any) -> None:
-        self._write("llm_response", {"message": message})
+    def log_llm_response(self, message: Any) -> int:
+        """Insert llm_response event and return its id."""
+        return self._write("llm_response", {"message": message})
 
-    def log_tool_call(
-        self, name: str, input: dict[str, Any]
+    def log_tool(
+        self,
+        event_id: int,
+        name: str,
+        input: dict[str, Any],
+        output: str,
     ) -> None:
-        self._write("tool_call", {"name": name, "input": input})
-
-    def log_tool_result(self, name: str, output: str) -> None:
-        self._write(
-            "tool_result", {"name": name, "output": output}
+        """Insert one tool row linked to the llm_response event."""
+        self._conn.execute(
+            """
+            INSERT INTO tool (event_id, name, input, output, ts)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (event_id, name, _dump(input), output, _now()),
         )
+        self._conn.commit()
 
     def log_assistant(self, content: str) -> None:
         self._write("assistant", {"content": content})

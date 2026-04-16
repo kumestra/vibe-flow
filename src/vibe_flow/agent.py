@@ -69,7 +69,7 @@ async def query(
         )
 
         message: Any = response.choices[0].message
-        logger.log_llm_response(message)
+        event_id: int = logger.log_llm_response(message)
 
         # 2. Append assistant response to history
         messages.append(message)
@@ -86,11 +86,10 @@ async def query(
             input_args: dict[str, Any] = json.loads(
                 tc.function.arguments
             )
-            logger.log_tool_call(tc.function.name, input_args)
-
             result: ToolResult = run_tool_use(tc, ctx, TOOLS_BY_NAME)
-            logger.log_tool_result(
-                tc.function.name, result.for_assistant
+            logger.log_tool(
+                event_id, tc.function.name,
+                input_args, result.for_assistant,
             )
 
             messages.append(
