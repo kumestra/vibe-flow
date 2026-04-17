@@ -75,37 +75,43 @@ The goal is clear, effective documentation. If a GFM feature helps, use it.
 
 ### What's been implemented:
 
-- `src/agent.py` — agent loop: calls LLM, runs tool calls serially, loops
-- `src/tool_base.py` — `Tool` ABC, `ToolUseContext`, `ToolResult`
-- `src/tool_runner.py` — `run_tool_use`: lookup → abort → parse → call
-- `src/tools/` — three tools: `get_current_time`, `read_file`, `write_file`
-- `pyproject.toml` — uv Python project with `vibe-flow` entry point
-- `.env` — OpenAI API key (gitignored)
+- `src/vibe_flow/agent.py` — agent loop using LiteLLM: streams tokens, runs tool calls serially, fires `on_token` / `on_tool_call` / `on_tool_result` callbacks
+- `src/vibe_flow/tool_base.py` — `Tool` ABC, `ToolUseContext`, `ToolResult`
+- `src/vibe_flow/tool_runner.py` — `run_tool_use`: lookup → parse → call
+- `src/vibe_flow/tools/` — one tool: `get_current_time` (`read_file` and `write_file` removed)
+- `src/vibe_flow/system_prompt.py` — builds system prompt string
+- `src/vibe_flow/logger.py` — SQLite session logger; three tables: `session`, `event`, `tool`
+- `src/vibe_flow/main.py` — Textual TUI: streaming `Static` widget, `RichLog` history with markdown rendering and tool call display
+- `pyproject.toml` — uv project; depends on `litellm`, `textual`, `python-dotenv`
+- `logs/vibe_flow.db` — SQLite log file (gitignored); MCP SQLite server points here
+- `.env` — API key (gitignored)
 
 ### What to do next:
 
-The core agent loop works. The following systems need design before implementation:
+Recommended order:
 
-- **Permissions** — needs design; Claude Code's permission system touches more than tool execution
-- **Hooks** — needs design; hooks are a broad system not limited to tools
-- **Validation** — needs design; decide what to validate at which layer
-- **Concurrency** — needs design; simple serial execution is correct, concurrent needs conflict analysis
+1. **Permissions** — gate tool execution behind a y/n prompt in the TUI before adding dangerous tools
+2. **bash + write_file tools** — makes the agent actually useful; requires permissions first
+3. **MCP client** — let vibe-flow consume MCP servers (JSON-RPC over stdio/SSE), exposing remote tools to the agent loop dynamically
+4. **Sub-agents** — spawn a second `query()` call with a restricted tool set; return its result as a tool result to the parent
 
 ## Directory Structure
 
 ```
 docs/              — analysis documents
+logs/
+└── vibe_flow.db   — SQLite session log (gitignored)
 src/
-├── __init__.py
-├── agent.py         — agent loop: LLM → tools → loop
-├── system_prompt.py
-├── tool_base.py     — Tool ABC, ToolUseContext, ToolResult
-├── tool_runner.py   — run_tool_use: lookup → abort → parse → call
-└── tools/
-    ├── __init__.py        — tool registry
-    ├── get_current_time/
-    ├── read_file/
-    └── write_file/
+└── vibe_flow/
+    ├── agent.py         — agent loop: LLM → tools → loop, with callbacks
+    ├── logger.py        — SQLite session logger
+    ├── main.py          — Textual TUI entry point
+    ├── system_prompt.py — system prompt builder
+    ├── tool_base.py     — Tool ABC, ToolUseContext, ToolResult
+    ├── tool_runner.py   — run_tool_use: lookup → parse → call
+    └── tools/
+        ├── __init__.py        — tool registry
+        └── get_current_time/
 .env               — API key (gitignored)
 pyproject.toml     — uv project config
 CLAUDE.md          — this file
@@ -113,7 +119,7 @@ CLAUDE.md          — this file
 
 ## Preferences
 
-- **OpenAI only** — user only has an OpenAI API key. Always use `from openai import OpenAI` and `gpt-4o`. Never use Anthropic SDK.
+- **LiteLLM + gpt-4o** — use `litellm.acompletion` with `model="gpt-4o"`. Never use the Anthropic SDK directly.
 - **Commit workflow** — when asked to "commit and push", run commands separately: `git add` first, then `git commit` alone (never chain commit with other commands), then `git push`. This prevents unintended commits if something fails.
 - **Doc analysis style** — for large analysis tasks, work section-by-section: read source → write analysis with actual source text + design patterns + lessons → append to doc → confirm before moving on. This builds deep understanding.
 - **Auto memory disabled** — all persistent context lives in this CLAUDE.md, not in `~/.claude` auto memory. This project moves across dev environments.
@@ -122,7 +128,7 @@ CLAUDE.md          — this file
 ## Technical Notes
 
 - Project uses `uv` for Python package management
-- User only has OpenAI API key — use OpenAI SDK, not Anthropic
-- Entry point: `uv run vibe-flow` or `uv run python src/agent.py`
+- Entry point: `uv run vibe-flow`
+- MCP SQLite server configured locally; points at `logs/vibe_flow.db`
 - Git branch: `tmp-claude-code-analysis`
 - All docs follow GFM with emoji, mermaid, tables where helpful
