@@ -18,7 +18,7 @@ import litellm
 from dotenv import load_dotenv
 from litellm import acompletion
 
-from vibe_flow.logger import SessionLogger
+from vibe_flow.logger_context import session_logger
 from vibe_flow.system_prompt import build_system_prompt
 from vibe_flow.tool_base import ToolResult, ToolUseContext
 from vibe_flow.tool_runner import run_tool_use
@@ -31,7 +31,6 @@ MODEL: str = "gpt-4o"
 async def query(
     user_input: str,
     messages: list[dict[str, Any]],
-    logger: SessionLogger,
     on_token: Callable[[str], None] | None = None,
     on_tool_call: Callable[[str, dict[str, Any]], None] | None = None,
     on_tool_result: Callable[[str, str], None] | None = None,
@@ -46,7 +45,7 @@ async def query(
             loop
     """
     messages.append({"role": "user", "content": user_input})
-    logger.log_user(user_input)
+    session_logger.log_user(user_input)
 
     ctx: ToolUseContext = ToolUseContext(
         messages=messages,
@@ -60,7 +59,7 @@ async def query(
             "content": build_system_prompt(),
         }
         tools: list[Any] = get_schemas()
-        logger.log_llm_request(messages, tools)
+        session_logger.log_llm_request(messages, tools)
 
         stream: Any = await acompletion(
             model=MODEL,
@@ -80,7 +79,7 @@ async def query(
         # Reconstruct the full message from chunks
         response: Any = litellm.stream_chunk_builder(chunks)
         message: Any = response.choices[0].message
-        event_id: int = logger.log_llm_response(message)
+        event_id: int = session_logger.log_llm_response(message)
 
         # 2. Append assistant response to history
         messages.append(message)
@@ -88,7 +87,7 @@ async def query(
         # 3. No tool calls → return the final text
         if not message.tool_calls:
             final: str = message.content or ""
-            logger.log_assistant(final)
+            session_logger.log_assistant(final)
             return final
 
         # 4. Execute tool calls serially
@@ -101,7 +100,7 @@ async def query(
             result: ToolResult = run_tool_use(tc, ctx, TOOLS_BY_NAME)
             if on_tool_result:
                 on_tool_result(tc.function.name, result.for_assistant)
-            logger.log_tool(
+            session_logger.log_tool(
                 event_id, tc.function.name,
                 input_args, result.for_assistant,
             )

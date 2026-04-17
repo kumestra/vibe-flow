@@ -18,9 +18,6 @@ Tokens stream into the Static widget as they arrive; when the
 response is complete it moves to RichLog as rendered markdown.
 """
 
-import os
-import uuid
-
 from rich.markdown import Markdown
 from textual import work
 from textual.app import App, ComposeResult
@@ -28,7 +25,6 @@ from textual.binding import Binding
 from textual.widgets import Footer, Header, Input, RichLog, Static
 
 from vibe_flow.agent import query
-from vibe_flow.logger import SessionLogger
 
 
 class ChatApp(App):
@@ -53,11 +49,7 @@ class ChatApp(App):
 
     def __init__(self) -> None:
         super().__init__()
-        self.session_id: str = str(uuid.uuid4())
         self.messages: list[dict] = []
-        self.logger: SessionLogger = SessionLogger(
-            self.session_id, os.getcwd()
-        )
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -103,7 +95,7 @@ class ChatApp(App):
             log.write(f"[dim]← {name}: {preview}[/dim]")
 
         response: str = await query(
-            user_input, self.messages, self.logger,
+            user_input, self.messages,
             on_token, on_tool_call, on_tool_result,
         )
 
