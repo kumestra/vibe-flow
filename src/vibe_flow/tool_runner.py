@@ -11,6 +11,7 @@ Steps:
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall,
@@ -39,7 +40,7 @@ def run_tool_use(
         )
 
     # 2. Parse
-    args: dict = json.loads(tool_call.function.arguments)
+    args: dict[str, Any] = json.loads(tool_call.function.arguments)
 
     # 3. Call
     try:

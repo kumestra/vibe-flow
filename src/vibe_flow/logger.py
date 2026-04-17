@@ -123,13 +123,15 @@ class SessionLogger:
         self._write("user", {"content": content})
 
     def log_llm_request(
-        self, messages: list[Any], tools: list[Any]
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict],
     ) -> None:
         self._write(
             "llm_request", {"messages": messages, "tools": tools}
         )
 
-    def log_llm_response(self, message: Any) -> int:
+    def log_llm_response(self, message: object) -> int:
         """Insert llm_response event and return its id."""
         return self._write("llm_response", {"message": message})
 

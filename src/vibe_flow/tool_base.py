@@ -36,7 +36,7 @@ class ToolResult:
 class ToolUseContext:
     """Per-turn execution environment passed to every tool."""
 
-    messages: list
+    messages: list[dict[str, Any]]
     cwd: str
     options: dict[str, Any] = field(default_factory=dict)
 
@@ -51,10 +51,10 @@ class Tool(ABC):
 
     name: str
     description: str
-    input_schema: dict
+    input_schema: dict[str, Any]
 
     @abstractmethod
-    def call(self, args: dict, ctx: ToolUseContext) -> ToolResult:
+    def call(self, args: dict[str, Any], ctx: ToolUseContext) -> ToolResult:
         """Execute the tool. Must be implemented by every subclass."""
         ...
 

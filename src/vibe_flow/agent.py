@@ -17,6 +17,8 @@ from typing import Any
 import litellm
 from dotenv import load_dotenv
 from litellm import acompletion
+from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
+from litellm.types.utils import Message, ModelResponse
 
 from vibe_flow.logger import session_logger
 from vibe_flow.system_prompt import build_system_prompt
@@ -54,14 +56,14 @@ async def query(
 
     while True:
         # 1. Call the LLM
-        system_msg: dict[str, Any] = {
+        system_msg: dict[str, str] = {
             "role": "system",
             "content": build_system_prompt(),
         }
-        tools: list[Any] = get_schemas()
+        tools: list[dict] = get_schemas()
         session_logger.log_llm_request(messages, tools)
 
-        stream: Any = await acompletion(
+        stream: CustomStreamWrapper = await acompletion(
             model=MODEL,
             tools=tools,
             messages=[system_msg] + messages,
@@ -69,7 +71,7 @@ async def query(
         )
 
         # Collect chunks; call on_token for each text token
-        chunks: list[Any] = []
+        chunks: list[ModelResponse] = []
         async for chunk in stream:
             chunks.append(chunk)
             token: str = chunk.choices[0].delta.content or ""
@@ -77,8 +79,8 @@ async def query(
                 on_token(token)
 
         # Reconstruct the full message from chunks
-        response: Any = litellm.stream_chunk_builder(chunks)
-        message: Any = response.choices[0].message
+        response: ModelResponse = litellm.stream_chunk_builder(chunks)
+        message: Message = response.choices[0].message
         event_id: int = session_logger.log_llm_response(message)
 
         # 2. Append assistant response to history
