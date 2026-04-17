@@ -17,7 +17,9 @@ Event types and their data shape:
 """
 
 import json
+import os
 import sqlite3
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -153,3 +155,8 @@ class SessionLogger:
 
     def close(self) -> None:
         self._conn.close()
+
+
+session_logger: SessionLogger = SessionLogger(
+    str(uuid.uuid4()), os.getcwd()
+)

@@ -18,7 +18,7 @@ import litellm
 from dotenv import load_dotenv
 from litellm import acompletion
 
-from vibe_flow.logger_context import session_logger
+from vibe_flow.logger import session_logger
 from vibe_flow.system_prompt import build_system_prompt
 from vibe_flow.tool_base import ToolResult, ToolUseContext
 from vibe_flow.tool_runner import run_tool_use
