@@ -8,12 +8,14 @@ Layout:
     │   (scrollable)          │
     │                         │
     ├─────────────────────────┤
+    │ streaming response      │
+    ├─────────────────────────┤
     │ > input box             │
     └─────────────────────────┘
 
 The agent runs as an async worker on textual's event loop.
-Input is disabled during the call and re-enabled when the
-response arrives.
+Tokens stream into the Static widget as they arrive; when the
+response is complete it moves to RichLog as rendered markdown.
 """
 
 import os
@@ -23,7 +25,7 @@ from rich.markdown import Markdown
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Footer, Header, Input, RichLog
+from textual.widgets import Footer, Header, Input, RichLog, Static
 
 from vibe_flow.agent import query
 from vibe_flow.logger import SessionLogger
@@ -35,6 +37,11 @@ class ChatApp(App):
         height: 1fr;
         border: solid $primary;
         padding: 0 1;
+    }
+
+    #streaming {
+        padding: 0 1;
+        color: $text-muted;
     }
 
     Input {
@@ -55,6 +62,7 @@ class ChatApp(App):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         yield RichLog(wrap=True, markup=True)
+        yield Static("", id="streaming")
         yield Input(placeholder="Type a message and press Enter...")
         yield Footer()
 
@@ -76,16 +84,22 @@ class ChatApp(App):
 
     @work
     async def _run_agent(self, user_input: str) -> None:
-        response: str = await query(
-            user_input, self.messages, self.logger
-        )
-        self._show_response(response)
+        streaming: Static = self.query_one("#streaming", Static)
+        buffer: list[str] = []
 
-    def _show_response(self, response: str) -> None:
+        def on_token(token: str) -> None:
+            buffer.append(token)
+            streaming.update("".join(buffer))
+
+        response: str = await query(
+            user_input, self.messages, self.logger, on_token
+        )
+
+        streaming.update("")
         log: RichLog = self.query_one(RichLog)
         log.write("[bold green]Assistant:[/]")
         log.write(Markdown(response))
-        input_widget = self.query_one(Input)
+        input_widget: Input = self.query_one(Input)
         input_widget.disabled = False
         input_widget.focus()
 

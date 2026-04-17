@@ -11,8 +11,10 @@ Uses litellm for provider-agnostic async LLM calls.
 
 import json
 import os
+from collections.abc import Callable
 from typing import Any
 
+import litellm
 from dotenv import load_dotenv
 from litellm import acompletion
 
@@ -30,6 +32,7 @@ async def query(
     user_input: str,
     messages: list[dict[str, Any]],
     logger: SessionLogger,
+    on_token: Callable[[str], None] | None = None,
 ) -> str:
     """
     Run one user turn — mirrors query() in query.ts.
@@ -57,12 +60,23 @@ async def query(
         tools: list[Any] = get_schemas()
         logger.log_llm_request(messages, tools)
 
-        response: Any = await acompletion(
+        stream: Any = await acompletion(
             model=MODEL,
             tools=tools,
             messages=[system_msg] + messages,
+            stream=True,
         )
 
+        # Collect chunks; call on_token for each text token
+        chunks: list[Any] = []
+        async for chunk in stream:
+            chunks.append(chunk)
+            token: str = chunk.choices[0].delta.content or ""
+            if token and on_token:
+                on_token(token)
+
+        # Reconstruct the full message from chunks
+        response: Any = litellm.stream_chunk_builder(chunks)
         message: Any = response.choices[0].message
         event_id: int = logger.log_llm_response(message)
 
