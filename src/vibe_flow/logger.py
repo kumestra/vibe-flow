@@ -16,6 +16,7 @@ Event types and their data shape:
     assistant    {content}
 """
 
+import dataclasses
 import json
 import os
 import sqlite3
@@ -35,7 +36,8 @@ def _now() -> str:
 
 
 def _default(obj: Any) -> Any:
-    """JSON fallback for Pydantic models."""
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        return dataclasses.asdict(obj)
     if hasattr(obj, "model_dump"):
         return obj.model_dump()
     raise TypeError(
@@ -122,14 +124,8 @@ class SessionLogger:
     def log_user(self, content: str) -> None:
         self._write("user", {"content": content})
 
-    def log_llm_request(
-        self,
-        messages: list[dict[str, Any]],
-        tools: list[dict],
-    ) -> None:
-        self._write(
-            "llm_request", {"messages": messages, "tools": tools}
-        )
+    def log_llm_request(self, request: object) -> None:
+        self._write("llm_request", {"request": request})
 
     def log_llm_response(self, message: object) -> int:
         """Insert llm_response event and return its id."""

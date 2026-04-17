@@ -11,6 +11,7 @@ Uses litellm for provider-agnostic async LLM calls.
 
 import json
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 import litellm
@@ -27,6 +28,14 @@ from vibe_flow.tools import TOOLS_BY_NAME, get_schemas
 
 load_dotenv()
 MODEL: str = "gpt-4o"
+
+
+@dataclass
+class LLMRequest:
+    model: str
+    messages: list[dict[str, Any]]
+    tools: list[dict[str, Any]]
+    stream: bool
 
 
 async def query(
@@ -50,18 +59,20 @@ async def query(
 
     while True:
         # 1. Call the LLM
-        system_msg: dict[str, str] = {
-            "role": "system",
-            "content": build_system_prompt(),
-        }
-        tools: list[dict] = get_schemas()
-        session_logger.log_llm_request(messages, tools)
+        request: LLMRequest = LLMRequest(
+            model=MODEL,
+            messages=[{"role": "system", "content": build_system_prompt()}]
+                     + messages,
+            tools=get_schemas(),
+            stream=True,
+        )
+        session_logger.log_llm_request(request)
 
         stream: CustomStreamWrapper = await acompletion(
-            model=MODEL,
-            tools=tools,
-            messages=[system_msg] + messages,
-            stream=True,
+            model=request.model,
+            tools=request.tools,
+            messages=request.messages,
+            stream=request.stream,
         )
 
         # Collect chunks; call on_token for each text token
