@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
-from vibe_flow.tool_base import Tool, ToolResult, ToolUseContext
+from vibe_flow.tool_base import Tool, ToolResult
 
 
 class GetCurrentTimeTool(Tool):
@@ -25,7 +26,7 @@ class GetCurrentTimeTool(Tool):
         "required": [],
     }
 
-    def call(self, args: dict, ctx: ToolUseContext) -> ToolResult:
+    def call(self, args: dict[str, Any]) -> ToolResult:
         tz_name: str = args.get("timezone", "UTC")
         now = datetime.now(ZoneInfo(tz_name))
         return ToolResult.of(now.isoformat())

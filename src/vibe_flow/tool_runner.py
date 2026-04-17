@@ -17,11 +17,10 @@ from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall,
 )
 
-from vibe_flow.tool_base import Tool, ToolResult, ToolUseContext
+from vibe_flow.tool_base import Tool, ToolResult
 
 def run_tool_use(
     tool_call: ChatCompletionMessageToolCall,
-    ctx: ToolUseContext,
     tools_by_name: dict[str, Tool],
 ) -> ToolResult:
     """
@@ -44,6 +43,6 @@ def run_tool_use(
 
     # 3. Call
     try:
-        return tool.call(args, ctx)
+        return tool.call(args)
     except Exception as exc:
         return ToolResult.of(f"Error running '{name}': {exc}")

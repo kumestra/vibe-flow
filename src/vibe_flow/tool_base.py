@@ -1,16 +1,15 @@
 """
-Tool base class and execution context.
+Tool base class.
 
-Three types used throughout the pipeline:
-  - Tool           — abstract base every tool extends
-  - ToolUseContext — per-turn execution environment
-  - ToolResult     — what a tool returns
+Two types used throughout the pipeline:
+  - Tool       — abstract base every tool extends
+  - ToolResult — what a tool returns
 """
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -32,15 +31,6 @@ class ToolResult:
         return cls(for_assistant=text, for_user=text)
 
 
-@dataclass
-class ToolUseContext:
-    """Per-turn execution environment passed to every tool."""
-
-    messages: list[dict[str, Any]]
-    cwd: str
-    options: dict[str, Any] = field(default_factory=dict)
-
-
 class Tool(ABC):
     """
     Abstract base for every tool.
@@ -54,7 +44,7 @@ class Tool(ABC):
     input_schema: dict[str, Any]
 
     @abstractmethod
-    def call(self, args: dict[str, Any], ctx: ToolUseContext) -> ToolResult:
+    def call(self, args: dict[str, Any]) -> ToolResult:
         """Execute the tool. Must be implemented by every subclass."""
         ...
 

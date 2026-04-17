@@ -10,7 +10,6 @@ Uses litellm for provider-agnostic async LLM calls.
 """
 
 import json
-import os
 from collections.abc import Callable
 from typing import Any
 
@@ -22,7 +21,7 @@ from litellm.types.utils import Message, ModelResponse
 
 from vibe_flow.logger import session_logger
 from vibe_flow.system_prompt import build_system_prompt
-from vibe_flow.tool_base import ToolResult, ToolUseContext
+from vibe_flow.tool_base import ToolResult
 from vibe_flow.tool_runner import run_tool_use
 from vibe_flow.tools import TOOLS_BY_NAME, get_schemas
 
@@ -48,11 +47,6 @@ async def query(
     """
     messages.append({"role": "user", "content": user_input})
     session_logger.log_user(user_input)
-
-    ctx: ToolUseContext = ToolUseContext(
-        messages=messages,
-        cwd=os.getcwd(),
-    )
 
     while True:
         # 1. Call the LLM
@@ -99,7 +93,7 @@ async def query(
             )
             if on_tool_call:
                 on_tool_call(tc.function.name, input_args)
-            result: ToolResult = run_tool_use(tc, ctx, TOOLS_BY_NAME)
+            result: ToolResult = run_tool_use(tc, TOOLS_BY_NAME)
             if on_tool_result:
                 on_tool_result(tc.function.name, result.for_assistant)
             session_logger.log_tool(
