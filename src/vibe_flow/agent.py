@@ -33,6 +33,8 @@ async def query(
     messages: list[dict[str, Any]],
     logger: SessionLogger,
     on_token: Callable[[str], None] | None = None,
+    on_tool_call: Callable[[str, dict[str, Any]], None] | None = None,
+    on_tool_result: Callable[[str, str], None] | None = None,
 ) -> str:
     """
     Run one user turn — mirrors query() in query.ts.
@@ -94,7 +96,11 @@ async def query(
             input_args: dict[str, Any] = json.loads(
                 tc.function.arguments
             )
+            if on_tool_call:
+                on_tool_call(tc.function.name, input_args)
             result: ToolResult = run_tool_use(tc, ctx, TOOLS_BY_NAME)
+            if on_tool_result:
+                on_tool_result(tc.function.name, result.for_assistant)
             logger.log_tool(
                 event_id, tc.function.name,
                 input_args, result.for_assistant,

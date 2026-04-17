@@ -85,18 +85,29 @@ class ChatApp(App):
     @work
     async def _run_agent(self, user_input: str) -> None:
         streaming: Static = self.query_one("#streaming", Static)
+        log: RichLog = self.query_one(RichLog)
         buffer: list[str] = []
 
         def on_token(token: str) -> None:
             buffer.append(token)
             streaming.update("".join(buffer))
 
+        def on_tool_call(name: str, args: dict) -> None:
+            args_str: str = ", ".join(
+                f"{k}={v!r}" for k, v in args.items()
+            )
+            log.write(f"[bold yellow]→ Tool:[/] {name}({args_str})")
+
+        def on_tool_result(name: str, output: str) -> None:
+            preview: str = output[:120] + "…" if len(output) > 120 else output
+            log.write(f"[dim]← {name}: {preview}[/dim]")
+
         response: str = await query(
-            user_input, self.messages, self.logger, on_token
+            user_input, self.messages, self.logger,
+            on_token, on_tool_call, on_tool_result,
         )
 
         streaming.update("")
-        log: RichLog = self.query_one(RichLog)
         log.write("[bold green]Assistant:[/]")
         log.write(Markdown(response))
         input_widget: Input = self.query_one(Input)
