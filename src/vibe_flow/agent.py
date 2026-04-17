@@ -85,8 +85,8 @@ async def query(
 
         # Reconstruct the full message from chunks
         response: ModelResponse = litellm.stream_chunk_builder(chunks)
+        event_id: int = session_logger.log_llm_response(response)
         message: Message = response.choices[0].message
-        event_id: int = session_logger.log_llm_response(message)
 
         # 2. Append assistant response to history
         messages.append(message)

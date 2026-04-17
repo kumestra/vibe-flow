@@ -127,9 +127,9 @@ class SessionLogger:
     def log_llm_request(self, request: object) -> None:
         self._write("llm_request", {"request": request})
 
-    def log_llm_response(self, message: object) -> int:
+    def log_llm_response(self, response: object) -> int:
         """Insert llm_response event and return its id."""
-        return self._write("llm_response", {"message": message})
+        return self._write("llm_response", {"response": response})
 
     def log_tool(
         self,
