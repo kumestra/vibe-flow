@@ -26,7 +26,7 @@ class GetCurrentTimeTool(Tool):
         "required": [],
     }
 
-    def call(self, args: dict[str, Any]) -> ToolResult:
+    async def call(self, args: dict[str, Any]) -> ToolResult:
         tz_name: str = args.get("timezone", "UTC")
         now = datetime.now(ZoneInfo(tz_name))
         return ToolResult.of(now.isoformat())

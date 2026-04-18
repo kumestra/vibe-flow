@@ -103,7 +103,7 @@ async def query(
             )
             if on_tool_call:
                 on_tool_call(tc.function.name, input_args)
-            result: ToolResult = run_tool_use(tc, TOOLS_BY_NAME)
+            result: ToolResult = await run_tool_use(tc, TOOLS_BY_NAME)
             if on_tool_result:
                 on_tool_result(tc.function.name, result.for_assistant)
             session_logger.log_tool(

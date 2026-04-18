@@ -50,12 +50,12 @@ class Tool(ABC):
     input_schema: dict[str, Any]
 
     @abstractmethod
-    def call(self, args: dict[str, Any]) -> ToolResult:
+    async def call(self, args: dict[str, Any]) -> ToolResult:
         """Execute the tool. Must be implemented by every subclass."""
         ...
 
 
-def run_tool_use(
+async def run_tool_use(
     tool_call: ChatCompletionMessageToolCall,
     tools_by_name: dict[str, Tool],
 ) -> ToolResult:
@@ -79,6 +79,6 @@ def run_tool_use(
 
     # 3. Call
     try:
-        return tool.call(args)
+        return await tool.call(args)
     except Exception as exc:
         return ToolResult.of(f"Error running '{name}': {exc}")
