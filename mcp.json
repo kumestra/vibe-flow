@@ -1,0 +1,8 @@
+{
+  "servers": [
+    {
+      "name": "dev-tools",
+      "url": "http://localhost:8000/sse"
+    }
+  ]
+}

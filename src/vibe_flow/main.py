@@ -18,6 +18,10 @@ Tokens stream into the Static widget as they arrive; when the
 response is complete it moves to RichLog as rendered markdown.
 """
 
+import json
+from contextlib import AsyncExitStack
+from pathlib import Path
+
 from rich.markdown import Markdown
 from textual import work
 from textual.app import App, ComposeResult
@@ -25,6 +29,10 @@ from textual.binding import Binding
 from textual.widgets import Footer, Header, Input, RichLog, Static
 
 from vibe_flow.agent import query
+from vibe_flow.mcp_client import load_mcp_tools
+from vibe_flow.tools import register_mcp_tools
+
+_MCP_CONFIG: Path = Path(__file__).parent.parent.parent / "mcp.json"
 
 
 class ChatApp(App):
@@ -50,6 +58,7 @@ class ChatApp(App):
     def __init__(self) -> None:
         super().__init__()
         self.messages: list[dict] = []
+        self._mcp_stack: AsyncExitStack = AsyncExitStack()
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -58,11 +67,25 @@ class ChatApp(App):
         yield Input(placeholder="Type a message and press Enter...")
         yield Footer()
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         self.query_one(RichLog).write(
             "[bold green]Assistant:[/] Hello! How can I help you?"
         )
         self.query_one(Input).focus()
+        await self._init_mcp()
+
+    async def _init_mcp(self) -> None:
+        if not _MCP_CONFIG.exists():
+            return
+        config: dict = json.loads(_MCP_CONFIG.read_text())
+        for server in config.get("servers", []):
+            tools = await load_mcp_tools(
+                server["url"], self._mcp_stack
+            )
+            register_mcp_tools(tools)
+
+    async def on_unmount(self) -> None:
+        await self._mcp_stack.aclose()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         user_input: str = event.value.strip()

@@ -9,6 +9,13 @@ ALL_TOOLS: list[Tool] = [
 TOOLS_BY_NAME: dict[str, Tool] = {t.name: t for t in ALL_TOOLS}
 
 
+def register_mcp_tools(tools: list[Tool]) -> None:
+    """Add MCP tools to the registry at runtime."""
+    for tool in tools:
+        ALL_TOOLS.append(tool)
+        TOOLS_BY_NAME[tool.name] = tool
+
+
 def get_schemas() -> list[dict[str, Any]]:
     """Return OpenAI function-calling schemas for all tools."""
     return [
