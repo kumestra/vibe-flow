@@ -24,6 +24,8 @@ class MCPTool(Tool):
     Delegates call() to the MCP server over an open ClientSession.
     """
 
+    requires_permission: bool = True
+
     def __init__(
         self,
         name: str,

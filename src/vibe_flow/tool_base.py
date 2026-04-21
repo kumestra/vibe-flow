@@ -11,12 +11,25 @@ from __future__ import annotations
 
 import json
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 
 from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall,
 )
+
+
+class PermissionDecision(str, Enum):
+    ALLOW_ONCE = "allow_once"
+    ALLOW_SESSION = "allow_session"
+    DENY = "deny"
+
+
+PermissionCallback = Callable[
+    [str, dict[str, Any]], Awaitable[PermissionDecision]
+]
 
 
 @dataclass
@@ -48,6 +61,7 @@ class Tool(ABC):
     name: str
     description: str
     input_schema: dict[str, Any]
+    requires_permission: bool = False
 
     @abstractmethod
     async def call(self, args: dict[str, Any]) -> ToolResult:
@@ -58,10 +72,17 @@ class Tool(ABC):
 async def run_tool_use(
     tool_call: ChatCompletionMessageToolCall,
     tools_by_name: dict[str, Tool],
+    on_permission: PermissionCallback | None = None,
+    session_allowed: set[str] | None = None,
 ) -> ToolResult:
     """
     Run a single tool call. Returns a ToolResult even on failure
     so the caller can always route something back to the model.
+
+    If the tool sets requires_permission=True and its name is not in
+    session_allowed, on_permission is awaited. DENY short-circuits
+    the call and returns a denial ToolResult. ALLOW_SESSION adds
+    the name to session_allowed so later calls skip the prompt.
     """
     name: str = tool_call.function.name
 
@@ -77,7 +98,24 @@ async def run_tool_use(
     # 2. Parse
     args: dict[str, Any] = json.loads(tool_call.function.arguments)
 
-    # 3. Call
+    # 3. Permission gate
+    if (
+        tool.requires_permission
+        and on_permission is not None
+        and (session_allowed is None or name not in session_allowed)
+    ):
+        decision: PermissionDecision = await on_permission(name, args)
+        if decision == PermissionDecision.DENY:
+            return ToolResult.of(
+                f"Permission denied by user for tool '{name}'."
+            )
+        if (
+            decision == PermissionDecision.ALLOW_SESSION
+            and session_allowed is not None
+        ):
+            session_allowed.add(name)
+
+    # 4. Call
     try:
         return await tool.call(args)
     except Exception as exc:

@@ -22,7 +22,11 @@ from litellm.types.utils import Message, ModelResponse
 
 from vibe_flow.logger import session_logger
 from vibe_flow.system_prompt import build_system_prompt
-from vibe_flow.tool_base import ToolResult, run_tool_use
+from vibe_flow.tool_base import (
+    PermissionCallback,
+    ToolResult,
+    run_tool_use,
+)
 from vibe_flow.tools import TOOLS_BY_NAME, get_schemas
 
 load_dotenv()
@@ -43,6 +47,8 @@ async def query(
     on_token: Callable[[str], None] | None = None,
     on_tool_call: Callable[[str, dict[str, Any]], None] | None = None,
     on_tool_result: Callable[[str, str], None] | None = None,
+    on_permission: PermissionCallback | None = None,
+    session_allowed: set[str] | None = None,
 ) -> str:
     """
     Run one user turn — mirrors query() in query.ts.
@@ -103,7 +109,11 @@ async def query(
             )
             if on_tool_call:
                 on_tool_call(tc.function.name, input_args)
-            result: ToolResult = await run_tool_use(tc, TOOLS_BY_NAME)
+            result: ToolResult = await run_tool_use(
+                tc, TOOLS_BY_NAME,
+                on_permission=on_permission,
+                session_allowed=session_allowed,
+            )
             if on_tool_result:
                 on_tool_result(tc.function.name, result.for_assistant)
             session_logger.log_tool(
