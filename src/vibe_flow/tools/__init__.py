@@ -1,11 +1,13 @@
 from typing import Any
 
 from vibe_flow.tool_base import Tool
+from vibe_flow.tools.bash import tool as bash_tool
 from vibe_flow.tools.get_current_time import tool as get_current_time_tool
 from vibe_flow.tools.read_file import tool as read_file_tool
 from vibe_flow.tools.write_file import tool as write_file_tool
 
 ALL_TOOLS: list[Tool] = [
+    bash_tool,
     get_current_time_tool,
     read_file_tool,
     write_file_tool,
