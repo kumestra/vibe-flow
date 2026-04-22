@@ -38,8 +38,9 @@ def _now() -> str:
 def _default(obj: Any) -> Any:
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
         return dataclasses.asdict(obj)
-    if hasattr(obj, "model_dump"):
-        return obj.model_dump()
+    model_dump = getattr(obj, "model_dump", None)
+    if callable(model_dump):
+        return model_dump()
     raise TypeError(
         f"Object of type {type(obj)} is not JSON serializable"
     )
@@ -119,7 +120,9 @@ class SessionLogger:
             (self._session_id, type, _dump(data), _now()),
         )
         self._conn.commit()
-        return cursor.lastrowid
+        row_id: int | None = cursor.lastrowid
+        assert row_id is not None
+        return row_id
 
     def log_user(self, content: str) -> None:
         self._write("user", {"content": content})

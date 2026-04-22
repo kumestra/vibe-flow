@@ -1,1 +1,1 @@
-from vibe_flow.tools.bash.bash import tool
+from vibe_flow.tools.bash.bash import tool as tool

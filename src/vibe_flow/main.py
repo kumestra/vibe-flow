@@ -21,6 +21,7 @@ response is complete it moves to RichLog as rendered markdown.
 import json
 from contextlib import AsyncExitStack
 from pathlib import Path
+from typing import Any
 
 from rich.markdown import Markdown
 from textual import work
@@ -66,10 +67,10 @@ class PermissionScreen(ModalScreen[PermissionDecision]):
 
     BINDINGS = [Binding("escape", "deny", "Deny")]
 
-    def __init__(self, tool_name: str, args: dict) -> None:
+    def __init__(self, tool_name: str, args: dict[str, Any]) -> None:
         super().__init__()
         self._tool_name: str = tool_name
-        self._args: dict = args
+        self._args: dict[str, Any] = args
 
     def compose(self) -> ComposeResult:
         args_str: str = ", ".join(
@@ -91,13 +92,15 @@ class PermissionScreen(ModalScreen[PermissionDecision]):
             "session": PermissionDecision.ALLOW_SESSION,
             "deny": PermissionDecision.DENY,
         }
-        self.dismiss(mapping[event.button.id])
+        button_id: str | None = event.button.id
+        assert button_id is not None
+        self.dismiss(mapping[button_id])
 
     def action_deny(self) -> None:
         self.dismiss(PermissionDecision.DENY)
 
 
-class ChatApp(App):
+class ChatApp(App[None]):
     CSS = """
     RichLog {
         height: 1fr;
@@ -119,7 +122,7 @@ class ChatApp(App):
 
     def __init__(self) -> None:
         super().__init__()
-        self.messages: list[dict] = []
+        self.messages: list[dict[str, Any]] = []
         self._mcp_stack: AsyncExitStack = AsyncExitStack()
         self._session_allowed: set[str] = set()
 
@@ -140,7 +143,7 @@ class ChatApp(App):
     async def _init_mcp(self) -> None:
         if not _MCP_CONFIG.exists():
             return
-        config: dict = json.loads(_MCP_CONFIG.read_text())
+        config: dict[str, Any] = json.loads(_MCP_CONFIG.read_text())
         for server in config.get("servers", []):
             tools = await load_mcp_tools(
                 server["url"], self._mcp_stack
@@ -170,7 +173,7 @@ class ChatApp(App):
             buffer.append(token)
             streaming.update("".join(buffer))
 
-        def on_tool_call(name: str, args: dict) -> None:
+        def on_tool_call(name: str, args: dict[str, Any]) -> None:
             args_str: str = ", ".join(
                 f"{k}={v!r}" for k, v in args.items()
             )
@@ -181,7 +184,7 @@ class ChatApp(App):
             log.write(f"[dim]← {name}: {preview}[/dim]")
 
         async def on_permission(
-            name: str, args: dict
+            name: str, args: dict[str, Any]
         ) -> PermissionDecision:
             return await self.push_screen_wait(
                 PermissionScreen(name, args)

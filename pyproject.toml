@@ -19,3 +19,17 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/vibe_flow"]
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "strict"
+reportMissingTypeStubs = false
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
+]
+
