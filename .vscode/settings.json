@@ -1,5 +1,8 @@
 {
   "files.readonlyInclude": {
     "**/*": true
+  },
+  "files.readonlyExclude": {
+    ".env": true
   }
 }
