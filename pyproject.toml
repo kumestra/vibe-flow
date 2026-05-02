@@ -5,6 +5,7 @@ description = "Add your description here"
 requires-python = ">=3.14"
 dependencies = [
     "numpy>=2.4.4",
+    "pretty-midi>=0.2.11",
 ]
 
 [dependency-groups]
